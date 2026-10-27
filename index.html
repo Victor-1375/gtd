@@ -71,7 +71,7 @@
     }
     .form-group select:focus, .form-group input:focus, .form-group textarea:focus { border-color: var(--primary); }
 
-    /* Desplegable Autocompletado de Situación */
+    /* Desplegables de Autocompletado */
     .autocomplete-dropdown {
       position: absolute; top: calc(100% + 2px); left: 0; right: 0; background: var(--surface);
       border: 1px solid var(--border); border-radius: 6px; max-height: 180px; overflow-y: auto;
@@ -94,7 +94,7 @@
     }
     .nav-btn {
       display: flex; flex-direction: column; align-items: center; gap: 3px;
-      background: none; border: none; color: var(--text-muted); font-size: 0.75rem; cursor: pointer; flex: 1; padding: 4px 0;
+      background: none; border: none; color: var(--text-muted); font-size: 0.7rem; cursor: pointer; flex: 1; padding: 4px 0;
     }
     .nav-btn.active { color: var(--primary); font-weight: 700; }
     .nav-btn span:first-child { font-size: 1.1rem; }
@@ -125,6 +125,8 @@
     .tag-due.overdue { background: var(--danger-bg); color: var(--danger); font-weight: 700; }
     .tag-project { background: #e0f2fe; color: #0369a1; font-weight: 600; }
     .tag-sit { background: #ede9fe; color: #6d28d9; font-weight: 600; }
+    .tag-person { background: #f0fdf4; color: #166534; font-weight: 600; cursor: pointer; }
+    .tag-person:hover { text-decoration: underline; }
     .task-actions { display: flex; gap: 6px; margin-top: 4px; }
 
     /* Modales */
@@ -172,6 +174,9 @@
     </button>
     <button class="nav-btn" onclick="switchTab('projects')">
       <span>📁</span><span>Proyectos</span>
+    </button>
+    <button class="nav-btn" onclick="switchTab('people')">
+      <span>👤</span><span>Personas</span>
     </button>
     <button class="nav-btn" onclick="switchTab('review')">
       <span>🔄</span><span>Revisión</span>
@@ -221,6 +226,11 @@
           <input type="text" id="capture-sit" placeholder="Ej: @Despacho" autocomplete="off" oninput="handleSitInput('capture')" onfocus="handleSitInput('capture')">
           <div class="autocomplete-dropdown" id="capture-sit-dropdown"></div>
         </div>
+      </div>
+      <div class="form-group" style="margin-bottom: 10px;">
+        <label>Persona (Delegada o Para hablar)</label>
+        <input type="text" id="capture-person" placeholder="Ej: Francesco Russo" autocomplete="off" oninput="handlePersonInput('capture')" onfocus="handlePersonInput('capture')">
+        <div class="autocomplete-dropdown" id="capture-person-dropdown"></div>
       </div>
       <div class="form-group" style="margin-bottom: 14px;">
         <label>Notas / Descripción</label>
@@ -279,6 +289,11 @@
           <input type="text" id="edit-sit" placeholder="Ej: @Despacho" autocomplete="off" oninput="handleSitInput('edit')" onfocus="handleSitInput('edit')">
           <div class="autocomplete-dropdown" id="edit-sit-dropdown"></div>
         </div>
+      </div>
+      <div class="form-group" style="margin-bottom: 10px;">
+        <label>Persona (Delegada o Para hablar)</label>
+        <input type="text" id="edit-person" placeholder="Ej: Francesco Russo" autocomplete="off" oninput="handlePersonInput('edit')" onfocus="handlePersonInput('edit')">
+        <div class="autocomplete-dropdown" id="edit-person-dropdown"></div>
       </div>
       <div class="form-group" style="margin-bottom: 14px;">
         <label>Descripción / Notas</label>
@@ -350,9 +365,15 @@
         </div>
       </div>
 
-      <!-- Grupo 2: Calendario -->
+      <!-- Grupo 2: Gestión de Situaciones -->
       <div class="settings-group">
-        <div class="settings-group-title">2. Google Calendar (.ics)</div>
+        <div class="settings-group-title">2. Gestión de Situaciones</div>
+        <div id="situations-manager-list" style="display:flex; flex-direction:column; gap:6px; max-height:160px; overflow-y:auto; padding-right:2px;"></div>
+      </div>
+
+      <!-- Grupo 3: Calendario -->
+      <div class="settings-group">
+        <div class="settings-group-title">3. Google Calendar (.ics)</div>
         <p style="font-size:0.8rem; color:var(--text-muted); margin-bottom:8px;">
           URL de suscripción para añadir en Google Calendar (Otros calendarios → Desde URL):
         </p>
@@ -362,14 +383,10 @@
         </div>
         <button class="btn btn-secondary btn-sm" onclick="downloadICS()">Descargar archivo .ics manual</button>
       </div>
-      <!-- Grupo: Gestión de Etiquetas / Situaciones -->
+
+      <!-- Grupo 4: Backups -->
       <div class="settings-group">
-        <div class="settings-group-title">Gestión de Etiquetas / Situaciones</div>
-        <div id="situations-manager-list" style="display:flex; flex-direction:column; gap:6px; max-height:160px; overflow-y:auto; padding-right:2px;"></div>
-      </div>
-      <!-- Grupo 3: Backups -->
-      <div class="settings-group">
-        <div class="settings-group-title">3. Copias de Seguridad</div>
+        <div class="settings-group-title">4. Copias de Seguridad</div>
         <div style="display:flex; gap:8px;">
           <button class="btn btn-secondary btn-sm" onclick="exportJSON()">Exportar Backup JSON</button>
           <button class="btn btn-secondary btn-sm" onclick="triggerImport()">Importar Backup JSON</button>
@@ -392,6 +409,7 @@
     };
     let currentTab = 'mem';
     let filterSituation = '';
+    let selectedPerson = null; // Para la vista 1 a 1 en Personas
     let ghShaData = null;
     let ghShaIcs = null;
 
@@ -451,7 +469,6 @@
           updateSyncBadge('Error Sync', 'error');
         }
 
-        // Obtener SHA de calendar.ics si existe
         const resIcs = await fetch(`https://api.github.com/repos/${cfg.owner}/${cfg.repo}/contents/calendar.ics`, {
           headers: { 'Authorization': `token ${cfg.token}`, 'Accept': 'application/vnd.github.v3+json' }
         });
@@ -473,7 +490,6 @@
 
       updateSyncBadge('Guardando...', 'syncing');
       try {
-        // 1. Guardar data.json
         const jsonContent = utf8ToBase64(JSON.stringify(db, null, 2));
         const resData = await fetch(`https://api.github.com/repos/${cfg.owner}/${cfg.repo}/contents/data.json`, {
           method: 'PUT',
@@ -485,7 +501,6 @@
           ghShaData = d.content.sha;
         }
 
-        // 2. Generar y guardar calendar.ics
         const icsContent = utf8ToBase64(generateICS());
         const resIcs = await fetch(`https://api.github.com/repos/${cfg.owner}/${cfg.repo}/contents/calendar.ics`, {
           method: 'PUT',
@@ -536,7 +551,12 @@
         lines.push(`UID:${t.id}@migtd`);
         lines.push(`DTSTAMP:${nowStr}`);
         lines.push(`SUMMARY:${escapeICS(t.name)}`);
-        if (t.description) lines.push(`DESCRIPTION:${escapeICS(t.description)}`);
+        
+        let descParts = [];
+        if (t.person) descParts.push(`Persona: ${t.person}`);
+        if (t.situation) descParts.push(`Situación: ${t.situation}`);
+        if (t.description) descParts.push(t.description);
+        if (descParts.length > 0) lines.push(`DESCRIPTION:${escapeICS(descParts.join(' | '))}`);
 
         if (t.startTime) {
           const startClean = t.startTime.replace(/:/g, '') + '00';
@@ -545,9 +565,7 @@
           lines.push(`DTSTART:${dateClean}T${startClean}`);
           lines.push(`DTEND:${dateClean}T${endClean}`);
         } else {
-          // Evento de todo el día
           lines.push(`DTSTART;VALUE=DATE:${dateClean}`);
-          // DTEND para todo el día en RFC 5545 es el día siguiente
           const nextDay = new Date(t.dueDate);
           nextDay.setDate(nextDay.getDate() + 1);
           const nextDayClean = nextDay.toISOString().split('T')[0].replace(/-/g, '');
@@ -584,11 +602,14 @@
         datesParam = `${dateClean}/${nextClean}`;
       }
 
-      const url = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(t.name)}&dates=${datesParam}&details=${encodeURIComponent(t.description || '')}`;
+      let desc = t.description || '';
+      if (t.person) desc = `[Persona: ${t.person}] ` + desc;
+
+      const url = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(t.name)}&dates=${datesParam}&details=${encodeURIComponent(desc)}`;
       window.open(url, '_blank');
     }
 
-    // --- AUTOCOMPLETADO DE SITUACIÓN (ESTILO NOTION) ---
+    // --- AUTOCOMPLETADO DE SITUACIÓN ---
     function getAllSituations() {
       const set = new Set();
       db.tasks.forEach(t => {
@@ -637,11 +658,138 @@
       document.getElementById(target + '-sit-dropdown').classList.remove('open');
     }
 
+    // --- AUTOCOMPLETADO DE PERSONA ---
+    function getActivePersons() {
+      // Personas que tienen al menos una tarea pendiente (desaparecen automáticamente al terminar)
+      const set = new Set();
+      db.tasks.forEach(t => {
+        if (t.status !== 'Completed' && t.status !== 'Eliminated' && t.person && t.person.trim()) {
+          set.add(t.person.trim());
+        }
+      });
+      return Array.from(set).sort((a,b) => a.localeCompare(b));
+    }
+
+    function getAllPersonsHistory() {
+      // Todas las personas que existen en el histórico de tareas
+      const set = new Set();
+      db.tasks.forEach(t => {
+        if (t.person && t.person.trim()) set.add(t.person.trim());
+      });
+      return Array.from(set).sort((a,b) => a.localeCompare(b));
+    }
+
+    function handlePersonInput(target) {
+      const input = document.getElementById(target + '-person');
+      const dropdown = document.getElementById(target + '-person-dropdown');
+      const val = input.value.trim().toLowerCase();
+      const allPersons = getAllPersonsHistory();
+
+      const filtered = allPersons.filter(p => p.toLowerCase().includes(val));
+      const exactMatch = allPersons.find(p => p.toLowerCase() === val);
+
+      let html = '';
+      if (filtered.length > 0) {
+        html += filtered.map(p => `
+          <div class="autocomplete-item" onmousedown="selectPerson('${target}', '${escapeHTML(p)}')">
+            <span>👤 ${escapeHTML(p)}</span>
+          </div>
+        `).join('');
+      }
+
+      if (val && !exactMatch) {
+        html += `
+          <div class="autocomplete-item create-new" onmousedown="selectPerson('${target}', '${escapeHTML(input.value.trim())}')">
+            <span>+ Crear persona: "<strong>${escapeHTML(input.value.trim())}</strong>"</span>
+          </div>
+        `;
+      }
+
+      if (html) {
+        dropdown.innerHTML = html;
+        dropdown.classList.add('open');
+      } else {
+        dropdown.classList.remove('open');
+      }
+    }
+
+    function selectPerson(target, value) {
+      const input = document.getElementById(target + '-person');
+      input.value = value;
+      document.getElementById(target + '-person-dropdown').classList.remove('open');
+    }
+
     document.addEventListener('click', (e) => {
       if (!e.target.closest('.form-group')) {
         document.querySelectorAll('.autocomplete-dropdown').forEach(d => d.classList.remove('open'));
       }
     });
+
+    // --- GESTIÓN DE SITUACIONES EN AJUSTES ---
+    function renderSettingsSituations() {
+      const list = document.getElementById('situations-manager-list');
+      if (!list) return;
+      const sits = getAllSituations();
+      if (sits.length === 0) {
+        list.innerHTML = '<p style="font-size:0.8rem; color:var(--text-muted);">No hay situaciones en uso.</p>';
+        return;
+      }
+      list.innerHTML = sits.map(s => `
+        <div style="display:flex; justify-content:space-between; align-items:center; background:var(--tag-bg); padding:6px 10px; border-radius:6px; font-size:0.85rem;">
+          <span>🏷️ <strong>${escapeHTML(s)}</strong></span>
+          <div style="display:flex; gap:6px;">
+            <button class="btn btn-secondary btn-sm" onclick="renameSituation(decodeURIComponent('${encodeURIComponent(s)}'))">Renombrar</button>
+            <button class="btn btn-secondary btn-sm" style="color:var(--danger)" onclick="deleteSituation(decodeURIComponent('${encodeURIComponent(s)}'))">Eliminar</button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function renameSituation(oldName) {
+      const newName = prompt(`Renombrar la situación "${oldName}" a:`, oldName);
+      if (!newName || newName.trim() === '' || newName.trim() === oldName) return;
+      const finalName = newName.trim();
+      db.tasks.forEach(t => {
+        if (t.situation === oldName) t.situation = finalName;
+      });
+      persistData();
+      renderSettingsSituations();
+    }
+
+    function deleteSituation(name) {
+      if (!confirm(`¿Eliminar la situación "${name}" de todas las tareas?`)) return;
+      db.tasks.forEach(t => {
+        if (t.situation === name) t.situation = null;
+      });
+      persistData();
+      renderSettingsSituations();
+    }
+
+    // --- GESTIÓN DE PERSONAS (RENOMBRAR / FUSIONAR) ---
+    function promptRenamePerson(oldName) {
+      const newName = prompt(`Renombrar o fusionar a "${oldName}" con:`, oldName);
+      if (!newName || newName.trim() === '' || newName.trim() === oldName) return;
+      const finalName = newName.trim();
+      db.tasks.forEach(t => {
+        if (t.person === oldName) t.person = finalName;
+      });
+      if (selectedPerson === oldName) selectedPerson = finalName;
+      persistData();
+    }
+
+    function promptClearPerson(personName) {
+      if (!confirm(`¿Desvincular a "${personName}" de todas sus tareas?`)) return;
+      db.tasks.forEach(t => {
+        if (t.person === personName) t.person = null;
+      });
+      selectedPerson = null;
+      persistData();
+    }
+
+    function goToPerson(personName) {
+      selectedPerson = personName;
+      switchTab('people');
+    }
 
     // --- CAPTURA RÁPIDA (MODAL) ---
     function openCaptureModal() {
@@ -650,6 +798,7 @@
       document.getElementById('capture-start').value = '';
       document.getElementById('capture-end').value = '';
       document.getElementById('capture-sit').value = '';
+      document.getElementById('capture-person').value = (currentTab === 'people' && selectedPerson) ? selectedPerson : '';
       document.getElementById('capture-desc').value = '';
       document.getElementById('capture-status').value = 'Inbox';
       populateProjectSelects();
@@ -672,6 +821,7 @@
 
       const proj = document.getElementById('capture-project').value || null;
       const sit = document.getElementById('capture-sit').value.trim() || null;
+      const person = document.getElementById('capture-person').value.trim() || null;
       const status = document.getElementById('capture-status').value || 'Inbox';
       const desc = document.getElementById('capture-desc').value.trim() || null;
 
@@ -684,6 +834,7 @@
         endTime: end,
         projectId: proj,
         situation: sit,
+        person: person,
         description: desc
       });
 
@@ -699,11 +850,11 @@
       }
     }
 
-    // --- RENDERIZADO ---
+    // --- RENDERIZADO PRINCIPAL ---
     function switchTab(tab) {
       currentTab = tab;
       document.querySelectorAll('.nav-btn').forEach((btn, idx) => {
-        btn.classList.toggle('active', ['mem', 'inbox', 'next', 'projects', 'review'][idx] === tab);
+        btn.classList.toggle('active', ['mem', 'inbox', 'next', 'projects', 'people', 'review'][idx] === tab);
       });
       render();
     }
@@ -717,6 +868,7 @@
       else if (currentTab === 'inbox') renderInbox(container, today);
       else if (currentTab === 'next') renderNextActions(container, today);
       else if (currentTab === 'projects') renderProjects(container);
+      else if (currentTab === 'people') renderPeople(container, today);
       else if (currentTab === 'review') renderReview(container, today);
     }
 
@@ -823,6 +975,89 @@
       container.innerHTML = html;
     }
 
+    // --- VISTA PERSONAS / AGENDA 1 A 1 ---
+    function renderPeople(container, today) {
+      const activePersons = getActivePersons();
+
+      // Si la persona seleccionada ya no tiene tareas activas, resetear selección
+      if (selectedPerson && !activePersons.includes(selectedPerson)) {
+        selectedPerson = null;
+      }
+
+      // Si hay una persona seleccionada, mostrar su Agenda 1 a 1 detallada
+      if (selectedPerson) {
+        const personTasks = db.tasks.filter(t => t.person === selectedPerson && t.status !== 'Completed' && t.status !== 'Eliminated');
+        const toDiscuss = personTasks.filter(t => t.status === 'Next Action');
+        const waitingFor = personTasks.filter(t => t.status === 'Delegated');
+        const otherTasks = personTasks.filter(t => t.status !== 'Next Action' && t.status !== 'Delegated');
+
+        let html = `
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+            <button class="btn btn-secondary btn-sm" onclick="selectedPerson = null; render();">← Volver a lista</button>
+            <div style="display:flex; gap:6px;">
+              <button class="btn btn-secondary btn-sm" onclick="promptRenamePerson(decodeURIComponent('${encodeURIComponent(selectedPerson)}'))">Renombrar / Unir</button>
+              <button class="btn btn-secondary btn-sm" style="color:var(--danger);" onclick="promptClearPerson(decodeURIComponent('${encodeURIComponent(selectedPerson)}'))">Desvincular</button>
+            </div>
+          </div>
+          <h2 style="font-size:1.2rem; font-weight:700; margin-bottom:6px;">👤 ${escapeHTML(selectedPerson)}</h2>
+          <p style="font-size:0.8rem; color:var(--text-muted); margin-bottom:16px;">Agenda 1 a 1 (${personTasks.length} pendientes)</p>
+        `;
+
+        html += `<div class="section-title" style="color:var(--primary);">🎯 Por Tratar con él/ella (${toDiscuss.length})</div>`;
+        html += toDiscuss.length === 0 ? `<p style="color:var(--text-muted); font-size:0.85rem;">Sin puntos de agenda pendientes.</p>` : toDiscuss.map(t => renderTaskCard(t, today)).join('');
+
+        html += `<div class="section-title" style="color:var(--warning-text);">⏳ Esperando de él/ella / Delegadas (${waitingFor.length})</div>`;
+        html += waitingFor.length === 0 ? `<p style="color:var(--text-muted); font-size:0.85rem;">No tienes nada delegado a esta persona.</p>` : waitingFor.map(t => renderTaskCard(t, today)).join('');
+
+        if (otherTasks.length > 0) {
+          html += `<div class="section-title">Otras / Inbox (${otherTasks.length})</div>`;
+          html += otherTasks.map(t => renderTaskCard(t, today)).join('');
+        }
+
+        container.innerHTML = html;
+        return;
+      }
+
+      // Si no hay nadie seleccionado, mostrar el directorio de personas con tareas activas
+      let html = `
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+          <h2 style="font-size:1.1rem; font-weight:700;">Agendas 1 a 1 (Personas)</h2>
+        </div>
+        <p style="font-size:0.8rem; color:var(--text-muted); margin-bottom:14px;">
+          Personas con tareas pendientes o delegadas. Desaparecen automáticamente cuando no queda nada pendiente.
+        </p>
+      `;
+
+      if (activePersons.length === 0) {
+        html += `<p style="color:var(--text-muted); font-size:0.9rem; margin-top:20px;">No hay personas con compromisos activos actualmente.</p>`;
+      } else {
+        html += activePersons.map(person => {
+          const tasks = db.tasks.filter(t => t.person === person && t.status !== 'Completed' && t.status !== 'Eliminated');
+          const discussCount = tasks.filter(t => t.status === 'Next Action').length;
+          const waitCount = tasks.filter(t => t.status === 'Delegated').length;
+
+          return `
+            <div class="task-card" style="cursor:pointer;" onclick="goToPerson(decodeURIComponent('${encodeURIComponent(person)}'))">
+              <div class="task-row">
+                <div>
+                  <strong style="font-size:1rem;">👤 ${escapeHTML(person)}</strong>
+                  <div style="font-size:0.75rem; color:var(--text-muted); margin-top:4px;">
+                    ${discussCount > 0 ? `<span style="color:var(--primary); font-weight:600;">${discussCount} por tratar</span>` : ''}
+                    ${discussCount > 0 && waitCount > 0 ? ' • ' : ''}
+                    ${waitCount > 0 ? `<span style="color:var(--warning-text); font-weight:600;">${waitCount} esperando</span>` : ''}
+                    ${discussCount === 0 && waitCount === 0 ? `<span>${tasks.length} tareas</span>` : ''}
+                  </div>
+                </div>
+                <button class="btn btn-secondary btn-sm" onclick="event.stopPropagation(); promptRenamePerson(decodeURIComponent('${encodeURIComponent(person)}'))">Renombrar / Unir</button>
+              </div>
+            </div>
+          `;
+        }).join('');
+      }
+
+      container.innerHTML = html;
+    }
+
     function renderReview(container, today) {
       const delegated = db.tasks.filter(t => t.status === 'Delegated');
       const reevaluate = db.tasks.filter(t => t.status === 'Reevaluate');
@@ -857,6 +1092,7 @@
             ${t.dueDate ? `<span class="tag tag-due ${isOverdue ? 'overdue' : ''}">📅 ${t.dueDate}${timeStr}</span>` : ''}
             ${proj ? `<span class="tag tag-project">📁 ${escapeHTML(proj.name)}</span>` : ''}
             ${t.situation ? `<span class="tag tag-sit">🏷️ ${escapeHTML(t.situation)}</span>` : ''}
+            ${t.person ? `<span class="tag tag-person" onclick="event.stopPropagation(); goToPerson(decodeURIComponent('${encodeURIComponent(t.person)}'))" title="Ver agenda 1 a 1">👤 ${escapeHTML(t.person)}</span>` : ''}
           </div>
           ${t.description ? `<p style="font-size:0.8rem; color:var(--text-muted);">${escapeHTML(t.description)}</p>` : ''}
           <div class="task-actions">
@@ -880,6 +1116,7 @@
       document.getElementById('edit-end').value = t.endTime || '';
       document.getElementById('edit-project').value = t.projectId || '';
       document.getElementById('edit-sit').value = t.situation || '';
+      document.getElementById('edit-person').value = t.person || '';
       document.getElementById('edit-desc').value = t.description || '';
       document.getElementById('edit-modal').classList.add('open');
     }
@@ -901,6 +1138,7 @@
         t.endTime = end;
         t.projectId = document.getElementById('edit-project').value || null;
         t.situation = document.getElementById('edit-sit').value.trim() || null;
+        t.person = document.getElementById('edit-person').value.trim() || null;
         t.description = document.getElementById('edit-desc').value.trim() || null;
         persistData();
       }
@@ -968,6 +1206,7 @@
 
       const calUrl = cfg.owner && cfg.repo ? `https://${cfg.owner}.github.io/${cfg.repo}/calendar.ics` : 'Configura usuario y repo primero';
       document.getElementById('cal-url-display').value = calUrl;
+      renderSettingsSituations();
       document.getElementById('settings-modal').classList.add('open');
     }
     function closeSettingsModal() { document.getElementById('settings-modal').classList.remove('open'); }
@@ -1019,7 +1258,7 @@
 
     function escapeHTML(str) {
       if (!str) return '';
-      return String(str).replace(/[&<>'"]/g, tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag));
+      return str.replace(/[&<>'"]/g, tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag));
     }
 
     window.addEventListener('DOMContentLoaded', loadData);
