@@ -16,7 +16,7 @@
       "status": "Inbox",
       "dueDate": null,
       "projectId": null,
-      "situation": null,
+      "situation": "En casa",
       "description": null
     }
   ]
