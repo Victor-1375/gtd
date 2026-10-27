@@ -1,0 +1,790 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>Mi GTD</title>
+  <style>
+    :root {
+      --bg: #f8fafc;
+      --surface: #ffffff;
+      --border: #cbd5e1;
+      --border-light: #e2e8f0;
+      --text: #0f172a;
+      --text-muted: #64748b;
+      --primary: #2563eb;
+      --primary-hover: #1d4ed8;
+      --danger: #dc2626;
+      --danger-bg: #fee2e2;
+      --warning-bg: #fef3c7;
+      --warning-text: #92400e;
+      --success: #16a34a;
+      --success-bg: #dcfce7;
+      --tag-bg: #f1f5f9;
+      --radius: 10px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; -webkit-tap-highlight-color: transparent; }
+    body { background: var(--bg); color: var(--text); padding-bottom: 85px; min-height: 100vh; }
+
+    header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border-light);
+      position: sticky;
+      top: 0;
+      z-index: 30;
+      padding: 12px 16px;
+    }
+    .header-top { display: flex; justify-content: space-between; align-items: center; max-width: 800px; margin: 0 auto; }
+    .header-title { font-size: 1.1rem; font-weight: 700; letter-spacing: -0.02em; }
+    .status-badge { font-size: 0.75rem; padding: 3px 9px; border-radius: 999px; background: #e2e8f0; color: var(--text-muted); font-weight: 600; }
+    .status-badge.syncing { background: #dbeafe; color: var(--primary); }
+    .status-badge.synced { background: var(--success-bg); color: var(--success); }
+    .status-badge.error { background: var(--danger-bg); color: var(--danger); }
+
+    /* Barra de Captura Rápida */
+    .capture-container { max-width: 800px; margin: 10px auto 0; }
+    .capture-box { display: flex; gap: 8px; }
+    .capture-box input[type="text"] {
+      flex: 1; padding: 11px 14px; border: 1px solid var(--border);
+      border-radius: var(--radius); font-size: 0.95rem; outline: none; background: var(--surface);
+    }
+    .capture-box input[type="text"]:focus { border-color: var(--primary); }
+    .btn {
+      padding: 10px 15px; border-radius: var(--radius); border: none;
+      font-weight: 600; cursor: pointer; font-size: 0.9rem; transition: background 0.15s ease;
+      display: inline-flex; align-items: center; justify-content: center; gap: 4px;
+    }
+    .btn-primary { background: var(--primary); color: white; }
+    .btn-primary:hover { background: var(--primary-hover); }
+    .btn-secondary { background: var(--tag-bg); color: var(--text); border: 1px solid var(--border-light); }
+    .btn-secondary:hover { background: #e2e8f0; }
+    .btn-sm { padding: 5px 10px; font-size: 0.8rem; border-radius: 6px; }
+
+    .capture-details {
+      display: none; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+      gap: 10px; margin-top: 10px; padding: 12px; background: var(--surface);
+      border: 1px solid var(--border-light); border-radius: var(--radius);
+    }
+    .capture-details.open { display: grid; }
+    .form-group { display: flex; flex-direction: column; gap: 4px; }
+    .form-group label { font-size: 0.75rem; color: var(--text-muted); font-weight: 600; }
+    .form-group select, .form-group input, .form-group textarea {
+      padding: 8px 10px; border: 1px solid var(--border); border-radius: 6px; font-size: 0.9rem; outline: none; background: #fff;
+    }
+
+    /* Navegación Fija */
+    nav {
+      position: fixed; bottom: 0; left: 0; right: 0; background: var(--surface);
+      border-top: 1px solid var(--border-light); display: flex; justify-content: space-around;
+      padding: 8px 0; z-index: 40;
+    }
+    .nav-btn {
+      display: flex; flex-direction: column; align-items: center; gap: 3px;
+      background: none; border: none; color: var(--text-muted); font-size: 0.75rem; cursor: pointer; flex: 1; padding: 4px 0;
+    }
+    .nav-btn.active { color: var(--primary); font-weight: 700; }
+    .nav-btn span:first-child { font-size: 1.1rem; }
+
+    /* Contenido */
+    main { max-width: 800px; margin: 16px auto; padding: 0 16px; }
+    .filter-bar { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 8px; margin-bottom: 12px; }
+    .filter-chip {
+      padding: 5px 12px; border-radius: 999px; background: var(--surface);
+      border: 1px solid var(--border-light); font-size: 0.8rem; white-space: nowrap; cursor: pointer; color: var(--text-muted);
+    }
+    .filter-chip.active { background: var(--primary); color: white; border-color: var(--primary); font-weight: 600; }
+
+    .section-title {
+      font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.06em;
+      color: var(--text-muted); margin: 24px 0 8px; font-weight: 700;
+    }
+    .task-card {
+      background: var(--surface); border: 1px solid var(--border-light); border-radius: var(--radius);
+      padding: 12px 14px; margin-bottom: 8px; display: flex; flex-direction: column; gap: 6px;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.02);
+    }
+    .task-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+    .task-title { font-size: 0.95rem; font-weight: 500; word-break: break-word; flex: 1; line-height: 1.4; cursor: pointer; }
+    .task-meta { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; font-size: 0.75rem; }
+    .tag { padding: 3px 7px; border-radius: 4px; background: var(--tag-bg); color: var(--text-muted); }
+    .tag-due { background: var(--warning-bg); color: var(--warning-text); font-weight: 600; }
+    .tag-due.overdue { background: var(--danger-bg); color: var(--danger); font-weight: 700; }
+    .tag-project { background: #e0f2fe; color: #0369a1; font-weight: 600; }
+    .tag-sit { background: #ede9fe; color: #6d28d9; font-weight: 600; }
+    .task-actions { display: flex; gap: 6px; margin-top: 4px; }
+
+    /* Modales */
+    .modal-overlay {
+      position: fixed; inset: 0; background: rgba(15, 23, 42, 0.45); display: none;
+      align-items: center; justify-content: center; z-index: 100; padding: 16px;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal {
+      background: var(--surface); padding: 20px; border-radius: var(--radius);
+      width: 100%; max-width: 480px; max-height: 90vh; overflow-y: auto; box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="header-top">
+      <div class="header-title">Mi GTD</div>
+      <div style="display:flex; align-items:center; gap:8px;">
+        <span id="sync-status" class="status-badge">Iniciando...</span>
+        <button class="btn btn-secondary btn-sm" onclick="openSettingsModal()">⚙ Config</button>
+      </div>
+    </div>
+    <!-- Captura de Entrada -->
+    <div class="capture-container">
+      <div class="capture-box">
+        <input type="text" id="quick-input" placeholder="Capturar acción rápida... (Enter)" onkeydown="if(event.key === 'Enter') handleQuickAdd()">
+        <button class="btn btn-secondary" onclick="toggleDetails()">+ Datos</button>
+        <button class="btn btn-primary" onclick="handleQuickAdd()">Añadir</button>
+      </div>
+      <div class="capture-details" id="capture-details">
+        <div class="form-group">
+          <label>Fecha Límite (Due)</label>
+          <input type="date" id="input-due">
+        </div>
+        <div class="form-group">
+          <label>Proyecto</label>
+          <select id="input-project"><option value="">(Sin Proyecto)</option></select>
+        </div>
+        <div class="form-group">
+          <label>Situación / Contexto</label>
+          <input type="text" id="input-situation" placeholder="Ej: @Despacho, @Llamadas">
+        </div>
+        <div class="form-group">
+          <label>Estado</label>
+          <select id="input-status">
+            <option value="Inbox" selected>Inbox</option>
+            <option value="Next Action">Next Action</option>
+            <option value="Delegated">Delegated</option>
+            <option value="Reevaluate">Reevaluate</option>
+          </select>
+        </div>
+        <div class="form-group" style="grid-column: 1 / -1;">
+          <label>Descripción / Notas</label>
+          <textarea id="input-desc" rows="2" placeholder="Detalles opcionales..."></textarea>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main id="app-content"></main>
+
+  <!-- Navegación Inferior -->
+  <nav>
+    <button class="nav-btn active" onclick="switchTab('mem')">
+      <span>⚡</span><span>MEM</span>
+    </button>
+    <button class="nav-btn" onclick="switchTab('inbox')">
+      <span>📥</span><span>Inbox</span>
+    </button>
+    <button class="nav-btn" onclick="switchTab('next')">
+      <span>🎯</span><span>Next Action</span>
+    </button>
+    <button class="nav-btn" onclick="switchTab('projects')">
+      <span>📁</span><span>Proyectos</span>
+    </button>
+    <button class="nav-btn" onclick="switchTab('review')">
+      <span>🔄</span><span>Revisión</span>
+    </button>
+  </nav>
+
+  <!-- Modal Ajustes / GitHub -->
+  <div class="modal-overlay" id="settings-modal">
+    <div class="modal">
+      <h3 style="margin-bottom: 14px;">Ajustes de Sincronización</h3>
+      <div class="form-group" style="margin-bottom: 10px;">
+        <label>Usuario de GitHub</label>
+        <input type="text" id="gh-owner" placeholder="Tu usuario">
+      </div>
+      <div class="form-group" style="margin-bottom: 10px;">
+        <label>Repositorio</label>
+        <input type="text" id="gh-repo" placeholder="mi-gtd">
+      </div>
+      <div class="form-group" style="margin-bottom: 14px;">
+        <label>Personal Access Token (con permiso 'repo')</label>
+        <input type="password" id="gh-token" placeholder="ghp_xxxx">
+      </div>
+      <div style="display:flex; justify-content: flex-end; gap:8px;">
+        <button class="btn btn-secondary" onclick="closeSettingsModal()">Cancelar</button>
+        <button class="btn btn-primary" onclick="saveSettings()">Guardar</button>
+      </div>
+      <hr style="margin: 18px 0; border: none; border-top: 1px solid var(--border-light);">
+      <div style="display:flex; justify-content: space-between;">
+        <button class="btn btn-secondary btn-sm" onclick="exportJSON()">Descargar Backup JSON</button>
+        <button class="btn btn-secondary btn-sm" onclick="triggerImport()">Importar Backup</button>
+        <input type="file" id="import-file" style="display:none;" onchange="importJSON(event)">
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Editar Tarea -->
+  <div class="modal-overlay" id="edit-modal">
+    <div class="modal">
+      <h3 style="margin-bottom: 14px;">Detalles de la Acción</h3>
+      <input type="hidden" id="edit-id">
+      <div class="form-group" style="margin-bottom: 10px;">
+        <label>Acción</label>
+        <input type="text" id="edit-title">
+      </div>
+      <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px; margin-bottom: 10px;">
+        <div class="form-group">
+          <label>Estado</label>
+          <select id="edit-status">
+            <option value="Inbox">Inbox</option>
+            <option value="Next Action">Next Action</option>
+            <option value="Delegated">Delegated</option>
+            <option value="Reevaluate">Reevaluate</option>
+            <option value="Completed">Completed</option>
+            <option value="Eliminated">Eliminated</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Fecha Límite</label>
+          <input type="date" id="edit-due">
+        </div>
+      </div>
+      <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px; margin-bottom: 10px;">
+        <div class="form-group">
+          <label>Proyecto</label>
+          <select id="edit-project"><option value="">(Sin Proyecto)</option></select>
+        </div>
+        <div class="form-group">
+          <label>Situación</label>
+          <input type="text" id="edit-situation">
+        </div>
+      </div>
+      <div class="form-group" style="margin-bottom: 14px;">
+        <label>Descripción / Notas</label>
+        <textarea id="edit-desc" rows="3"></textarea>
+      </div>
+      <div style="display:flex; justify-content: space-between;">
+        <button class="btn btn-secondary" style="color:var(--danger)" onclick="deleteCurrentTask()">Eliminar</button>
+        <div style="display:flex; gap:8px;">
+          <button class="btn btn-secondary" onclick="closeEditModal()">Cancelar</button>
+          <button class="btn btn-primary" onclick="saveTaskEdits()">Guardar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Nuevo Proyecto -->
+  <div class="modal-overlay" id="project-modal">
+    <div class="modal">
+      <h3 style="margin-bottom: 14px;">Nuevo Proyecto</h3>
+      <div class="form-group" style="margin-bottom: 10px;">
+        <label>Nombre del Proyecto</label>
+        <input type="text" id="new-proj-name" placeholder="Ej: Redactar Capítulo IV">
+      </div>
+      <div class="form-group" style="margin-bottom: 14px;">
+        <label>Área de Responsabilidad</label>
+        <select id="new-proj-area"></select>
+      </div>
+      <div style="display:flex; justify-content: flex-end; gap:8px;">
+        <button class="btn btn-secondary" onclick="closeProjectModal()">Cancelar</button>
+        <button class="btn btn-primary" onclick="saveNewProject()">Crear Proyecto</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Nueva Área -->
+  <div class="modal-overlay" id="area-modal">
+    <div class="modal">
+      <h3 style="margin-bottom: 14px;">Nueva Área de Responsabilidad</h3>
+      <div class="form-group" style="margin-bottom: 14px;">
+        <label>Nombre del Área</label>
+        <input type="text" id="new-area-name" placeholder="Ej: DOCENCIA">
+      </div>
+      <div style="display:flex; justify-content: flex-end; gap:8px;">
+        <button class="btn btn-secondary" onclick="closeAreaModal()">Cancelar</button>
+        <button class="btn btn-primary" onclick="saveNewArea()">Crear Área</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // --- ESTADO Y MODELO ---
+    let db = {
+      areas: ["TESIS", "PUSC", "Cavabianca", "MONTALBÁN", "RETAMAR", "FORMACIÓN", "PERSONAL"],
+      projects: [],
+      tasks: []
+    };
+    let currentTab = 'mem';
+    let filterSituation = '';
+    let ghSha = null;
+
+    // --- CODIFICACIÓN UTF-8 RESILIENTE ---
+    function utf8ToBase64(str) {
+      const bytes = new TextEncoder().encode(str);
+      let bin = '';
+      for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+      return btoa(bin);
+    }
+
+    function base64ToUtf8(b64) {
+      const bin = atob(b64.replace(/\s/g, ''));
+      const bytes = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+      return new TextDecoder().decode(bytes);
+    }
+
+    // --- GESTIÓN DE CONFIGURACIÓN Y SINCRONIZACIÓN ---
+    function getGHConfig() {
+      return {
+        owner: localStorage.getItem('gtd_owner') || '',
+        repo: localStorage.getItem('gtd_repo') || '',
+        token: localStorage.getItem('gtd_token') || ''
+      };
+    }
+
+    async function loadData() {
+      const local = localStorage.getItem('gtd_db');
+      if (local) {
+        try { db = JSON.parse(local); } catch(e){}
+      }
+      render();
+
+      const cfg = getGHConfig();
+      if (!cfg.token || !cfg.owner || !cfg.repo) {
+        updateSyncBadge('Sin Configurar', 'error');
+        return;
+      }
+
+      updateSyncBadge('Sincronizando...', 'syncing');
+      try {
+        const res = await fetch(`https://api.github.com/repos/${cfg.owner}/${cfg.repo}/contents/data.json`, {
+          headers: {
+            'Authorization': `token ${cfg.token}`,
+            'Accept': 'application/vnd.github.v3+json'
+          }
+        });
+
+        if (res.status === 200) {
+          const json = await res.json();
+          ghSha = json.sha;
+          const content = base64ToUtf8(json.content);
+          db = JSON.parse(content);
+          localStorage.setItem('gtd_db', JSON.stringify(db));
+          updateSyncBadge('Sincronizado', 'synced');
+          render();
+        } else if (res.status === 404) {
+          await persistData(); // Crear archivo inicial en GitHub
+        } else {
+          updateSyncBadge('Error Sync', 'error');
+        }
+      } catch (err) {
+        updateSyncBadge('Sin Conexión', 'error');
+      }
+    }
+
+    async function persistData(retryCount = 0) {
+      localStorage.setItem('gtd_db', JSON.stringify(db));
+      render();
+
+      const cfg = getGHConfig();
+      if (!cfg.token || !cfg.owner || !cfg.repo) return;
+
+      updateSyncBadge('Guardando...', 'syncing');
+      try {
+        const contentStr = JSON.stringify(db, null, 2);
+        const encoded = utf8ToBase64(contentStr);
+        const body = {
+          message: "GTD Auto-Sync",
+          content: encoded,
+          sha: ghSha || undefined
+        };
+
+        const res = await fetch(`https://api.github.com/repos/${cfg.owner}/${cfg.repo}/contents/data.json`, {
+          method: 'PUT',
+          headers: {
+            'Authorization': `token ${cfg.token}`,
+            'Content-Type': 'application/json',
+            'Accept': 'application/vnd.github.v3+json'
+          },
+          body: JSON.stringify(body)
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          ghSha = data.content.sha;
+          updateSyncBadge('Sincronizado', 'synced');
+        } else if (res.status === 409 && retryCount < 2) {
+          // Resolución de conflicto de versión: refrescar SHA y reintentar
+          const check = await fetch(`https://api.github.com/repos/${cfg.owner}/${cfg.repo}/contents/data.json`, {
+            headers: { 'Authorization': `token ${cfg.token}`, 'Accept': 'application/vnd.github.v3+json' }
+          });
+          if (check.ok) {
+            const checkData = await check.json();
+            ghSha = checkData.sha;
+            return persistData(retryCount + 1);
+          }
+        } else {
+          updateSyncBadge('Error al Guardar', 'error');
+        }
+      } catch (e) {
+        updateSyncBadge('Sin Conexión', 'error');
+      }
+    }
+
+    function updateSyncBadge(text, cls) {
+      const el = document.getElementById('sync-status');
+      el.textContent = text;
+      el.className = 'status-badge ' + cls;
+    }
+
+    // --- ACCIONES GTD ---
+    function handleQuickAdd() {
+      const input = document.getElementById('quick-input');
+      const text = input.value.trim();
+      if (!text) return;
+
+      const due = document.getElementById('input-due').value || null;
+      const proj = document.getElementById('input-project').value || null;
+      const sit = document.getElementById('input-situation').value.trim() || null;
+      const status = document.getElementById('input-status').value || 'Inbox';
+      const desc = document.getElementById('input-desc').value.trim() || null;
+
+      const newTask = {
+        id: 't_' + Date.now(),
+        name: text,
+        status: status,
+        dueDate: due,
+        projectId: proj,
+        situation: sit,
+        description: desc
+      };
+
+      db.tasks.unshift(newTask);
+      input.value = '';
+      document.getElementById('input-due').value = '';
+      document.getElementById('input-desc').value = '';
+      document.getElementById('capture-details').classList.remove('open');
+      persistData();
+    }
+
+    function toggleDetails() {
+      document.getElementById('capture-details').classList.toggle('open');
+      populateProjectSelects();
+    }
+
+    function setTaskStatus(id, newStatus) {
+      const t = db.tasks.find(x => x.id === id);
+      if (t) {
+        t.status = newStatus;
+        persistData();
+      }
+    }
+
+    // --- NAVEGACIÓN Y VISTAS ---
+    function switchTab(tab) {
+      currentTab = tab;
+      document.querySelectorAll('.nav-btn').forEach((btn, idx) => {
+        btn.classList.toggle('active', ['mem', 'inbox', 'next', 'projects', 'review'][idx] === tab);
+      });
+      render();
+    }
+
+    function render() {
+      populateProjectSelects();
+      const container = document.getElementById('app-content');
+      const today = new Date().toISOString().split('T')[0];
+
+      if (currentTab === 'mem') renderMEM(container, today);
+      else if (currentTab === 'inbox') renderInbox(container, today);
+      else if (currentTab === 'next') renderNextActions(container, today);
+      else if (currentTab === 'projects') renderProjects(container);
+      else if (currentTab === 'review') renderReview(container, today);
+    }
+
+    function renderMEM(container, today) {
+      const nextWeek = new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0];
+
+      // Clasificación rigurosa
+      const overdue = db.tasks.filter(t => t.status !== 'Completed' && t.status !== 'Eliminated' && t.dueDate && t.dueDate < today);
+      const dueToday = db.tasks.filter(t => t.status !== 'Completed' && t.status !== 'Eliminated' && t.dueDate === today);
+      const nextNoDate = db.tasks.filter(t => t.status === 'Next Action' && !t.dueDate);
+      const upcoming = db.tasks.filter(t => t.status !== 'Completed' && t.status !== 'Eliminated' && t.dueDate && t.dueDate > today && t.dueDate <= nextWeek);
+
+      // Filtro por Situación
+      let nextFiltered = nextNoDate;
+      if (filterSituation) {
+        nextFiltered = nextFiltered.filter(t => t.situation === filterSituation);
+      }
+
+      const allSituations = Array.from(new Set(db.tasks.filter(t => t.situation && t.status === 'Next Action').map(t => t.situation)));
+
+      let html = `
+        <div class="filter-bar">
+          <span class="filter-chip ${filterSituation === '' ? 'active' : ''}" onclick="setSituationFilter('')">Todas las Situaciones</span>
+          ${allSituations.map(s => `<span class="filter-chip ${filterSituation === s ? 'active' : ''}" onclick="setSituationFilter('${escapeHTML(s)}')">${escapeHTML(s)}</span>`).join('')}
+        </div>
+      `;
+
+      if (overdue.length > 0) {
+        html += `<div class="section-title" style="color:var(--danger)">⚠️ Vencidas (${overdue.length})</div>`;
+        html += overdue.map(t => renderTaskCard(t, today)).join('');
+      }
+
+      html += `<div class="section-title">Para Hoy (${dueToday.length})</div>`;
+      html += dueToday.length === 0 ? `<p style="color:var(--text-muted); font-size:0.85rem;">No hay compromisos con fecha límite hoy.</p>` : dueToday.map(t => renderTaskCard(t, today)).join('');
+
+      html += `<div class="section-title">Siguientes Acciones Disponibles (${nextFiltered.length})</div>`;
+      html += nextFiltered.length === 0 ? `<p style="color:var(--text-muted); font-size:0.85rem;">Sin acciones en este contexto.</p>` : nextFiltered.map(t => renderTaskCard(t, today)).join('');
+
+      html += `<div class="section-title">Upcoming (Próximos 7 días) (${upcoming.length})</div>`;
+      html += upcoming.length === 0 ? `<p style="color:var(--text-muted); font-size:0.85rem;">Sin compromisos cercanos.</p>` : upcoming.sort((a,b) => a.dueDate.localeCompare(b.dueDate)).map(t => renderTaskCard(t, today)).join('');
+
+      container.innerHTML = html;
+    }
+
+    function setSituationFilter(s) {
+      filterSituation = s;
+      render();
+    }
+
+    function renderInbox(container, today) {
+      const inboxTasks = db.tasks.filter(t => t.status === 'Inbox');
+      let html = `<div class="section-title">Bandeja de Entrada (${inboxTasks.length})</div>`;
+      if (inboxTasks.length === 0) {
+        html += `<p style="color:var(--text-muted); font-size:0.9rem;">Bandeja limpia. Todo procesado.</p>`;
+      } else {
+        html += inboxTasks.map(t => renderTaskCard(t, today)).join('');
+      }
+      container.innerHTML = html;
+    }
+
+    function renderNextActions(container, today) {
+      const nextTasks = db.tasks.filter(t => t.status === 'Next Action');
+      let html = `<div class="section-title">Todas las Next Actions (${nextTasks.length})</div>`;
+      if (nextTasks.length === 0) {
+        html += `<p style="color:var(--text-muted); font-size:0.9rem;">No hay acciones activas.</p>`;
+      } else {
+        html += nextTasks.map(t => renderTaskCard(t, today)).join('');
+      }
+      container.innerHTML = html;
+    }
+
+    function renderProjects(container) {
+      let html = `
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+          <h2 style="font-size:1.1rem; font-weight:700;">Áreas y Proyectos</h2>
+          <div style="display:flex; gap:6px;">
+            <button class="btn btn-secondary btn-sm" onclick="openAreaModal()">+ Área</button>
+            <button class="btn btn-primary btn-sm" onclick="openProjectModal()">+ Proyecto</button>
+          </div>
+        </div>
+      `;
+
+      db.areas.forEach(area => {
+        const areaProjects = db.projects.filter(p => p.area === area);
+        html += `
+          <div style="margin-top:20px;">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <span class="section-title" style="margin:0;">${escapeHTML(area)}</span>
+              <button class="btn btn-secondary btn-sm" style="font-size:0.7rem; padding:2px 8px; color:var(--danger)" onclick="deleteArea('${escapeHTML(area)}')">Eliminar Área</button>
+            </div>
+        `;
+
+        if (areaProjects.length === 0) {
+          html += `<p style="font-size:0.8rem; color:var(--text-muted); margin: 6px 0;">Sin proyectos asociados.</p>`;
+        } else {
+          areaProjects.forEach(p => {
+            const pendingTasks = db.tasks.filter(t => t.projectId === p.id && t.status !== 'Completed' && t.status !== 'Eliminated').length;
+            html += `
+              <div class="task-card" style="margin-top:6px;">
+                <div class="task-row">
+                  <div>
+                    <strong>📁 ${escapeHTML(p.name)}</strong>
+                    <span style="font-size:0.75rem; color:var(--text-muted); margin-left:6px;">(${pendingTasks} acciones pendientes)</span>
+                  </div>
+                  <button class="btn btn-secondary btn-sm" style="color:var(--danger);" onclick="deleteProject('${p.id}')">Eliminar</button>
+                </div>
+              </div>
+            `;
+          });
+        }
+        html += `</div>`;
+      });
+
+      container.innerHTML = html;
+    }
+
+    function renderReview(container, today) {
+      const delegated = db.tasks.filter(t => t.status === 'Delegated');
+      const reevaluate = db.tasks.filter(t => t.status === 'Reevaluate');
+      const completed = db.tasks.filter(t => t.status === 'Completed').slice(0, 15);
+
+      let html = `<h2 style="font-size:1.1rem; font-weight:700; margin-bottom:12px;">Revisión GTD</h2>`;
+      html += `<div class="section-title">En Espera / Delegadas (${delegated.length})</div>`;
+      html += delegated.length === 0 ? `<p style="color:var(--text-muted); font-size:0.85rem;">Sin elementos delegados.</p>` : delegated.map(t => renderTaskCard(t, today)).join('');
+
+      html += `<div class="section-title">Incubadora / Reevaluar (${reevaluate.length})</div>`;
+      html += reevaluate.length === 0 ? `<p style="color:var(--text-muted); font-size:0.85rem;">Nada que reevaluar.</p>` : reevaluate.map(t => renderTaskCard(t, today)).join('');
+
+      html += `<div class="section-title">Últimas Completadas (${completed.length})</div>`;
+      html += completed.map(t => renderTaskCard(t, today)).join('');
+
+      container.innerHTML = html;
+    }
+
+    function renderTaskCard(t, today) {
+      const proj = db.projects.find(p => p.id === t.projectId);
+      const isOverdue = t.dueDate && t.dueDate < today && t.status !== 'Completed';
+
+      return `
+        <div class="task-card">
+          <div class="task-row">
+            <span class="task-title" onclick="openEditModal('${t.id}')">${escapeHTML(t.name)}</span>
+            ${t.status !== 'Completed' ? `<button class="btn btn-secondary btn-sm" title="Marcar como hecha" onclick="setTaskStatus('${t.id}', 'Completed')">✓</button>` : ''}
+          </div>
+          <div class="task-meta">
+            ${t.status !== 'Next Action' && t.status !== 'Inbox' ? `<span class="tag">${t.status}</span>` : ''}
+            ${t.dueDate ? `<span class="tag tag-due ${isOverdue ? 'overdue' : ''}">📅 ${t.dueDate}</span>` : ''}
+            ${proj ? `<span class="tag tag-project">📁 ${escapeHTML(proj.name)}</span>` : ''}
+            ${t.situation ? `<span class="tag tag-sit">🏷️ ${escapeHTML(t.situation)}</span>` : ''}
+          </div>
+          ${t.description ? `<p style="font-size:0.8rem; color:var(--text-muted);">${escapeHTML(t.description)}</p>` : ''}
+          <div class="task-actions">
+            ${t.status === 'Inbox' ? `<button class="btn btn-secondary btn-sm" onclick="setTaskStatus('${t.id}', 'Next Action')">Mover a Next Action</button>` : ''}
+            <button class="btn btn-secondary btn-sm" onclick="openEditModal('${t.id}')">Editar</button>
+          </div>
+        </div>
+      `;
+    }
+
+    // --- MODALES Y CRUD ---
+    function openEditModal(id) {
+      const t = db.tasks.find(x => x.id === id);
+      if (!t) return;
+      document.getElementById('edit-id').value = t.id;
+      document.getElementById('edit-title').value = t.name;
+      document.getElementById('edit-status').value = t.status;
+      document.getElementById('edit-due').value = t.dueDate || '';
+      document.getElementById('edit-project').value = t.projectId || '';
+      document.getElementById('edit-situation').value = t.situation || '';
+      document.getElementById('edit-desc').value = t.description || '';
+      document.getElementById('edit-modal').classList.add('open');
+    }
+    function closeEditModal() { document.getElementById('edit-modal').classList.remove('open'); }
+
+    function saveTaskEdits() {
+      const id = document.getElementById('edit-id').value;
+      const t = db.tasks.find(x => x.id === id);
+      if (t) {
+        t.name = document.getElementById('edit-title').value.trim() || t.name;
+        t.status = document.getElementById('edit-status').value;
+        t.dueDate = document.getElementById('edit-due').value || null;
+        t.projectId = document.getElementById('edit-project').value || null;
+        t.situation = document.getElementById('edit-situation').value.trim() || null;
+        t.description = document.getElementById('edit-desc').value.trim() || null;
+        persistData();
+      }
+      closeEditModal();
+    }
+
+    function deleteCurrentTask() {
+      const id = document.getElementById('edit-id').value;
+      db.tasks = db.tasks.filter(x => x.id !== id);
+      persistData();
+      closeEditModal();
+    }
+
+    // Modal Proyectos
+    function openProjectModal() {
+      const select = document.getElementById('new-proj-area');
+      select.innerHTML = db.areas.map(a => `<option value="${escapeHTML(a)}">${escapeHTML(a)}</option>`).join('');
+      document.getElementById('new-proj-name').value = '';
+      document.getElementById('project-modal').classList.add('open');
+    }
+    function closeProjectModal() { document.getElementById('project-modal').classList.remove('open'); }
+    function saveNewProject() {
+      const name = document.getElementById('new-proj-name').value.trim();
+      const area = document.getElementById('new-proj-area').value;
+      if (!name) return;
+      db.projects.push({ id: 'p_' + Date.now(), name: name, area: area });
+      closeProjectModal();
+      persistData();
+    }
+    function deleteProject(id) {
+      db.projects = db.projects.filter(p => p.id !== id);
+      db.tasks.forEach(t => { if (t.projectId === id) t.projectId = null; });
+      persistData();
+    }
+
+    // Modal Áreas
+    function openAreaModal() {
+      document.getElementById('new-area-name').value = '';
+      document.getElementById('area-modal').classList.add('open');
+    }
+    function closeAreaModal() { document.getElementById('area-modal').classList.remove('open'); }
+    function saveNewArea() {
+      const name = document.getElementById('new-area-name').value.trim();
+      if (name && !db.areas.includes(name)) {
+        db.areas.push(name);
+        closeAreaModal();
+        persistData();
+      }
+    }
+    function deleteArea(area) {
+      db.areas = db.areas.filter(a => a !== area);
+      persistData();
+    }
+
+    function populateProjectSelects() {
+      const options = `<option value="">(Sin Proyecto)</option>` + db.projects.map(p => `<option value="${p.id}">${escapeHTML(p.name)}</option>`).join('');
+      document.getElementById('input-project').innerHTML = options;
+      document.getElementById('edit-project').innerHTML = options;
+    }
+
+    // Ajustes
+    function openSettingsModal() {
+      const cfg = getGHConfig();
+      document.getElementById('gh-owner').value = cfg.owner;
+      document.getElementById('gh-repo').value = cfg.repo;
+      document.getElementById('gh-token').value = cfg.token;
+      document.getElementById('settings-modal').classList.add('open');
+    }
+    function closeSettingsModal() { document.getElementById('settings-modal').classList.remove('open'); }
+    function saveSettings() {
+      localStorage.setItem('gtd_owner', document.getElementById('gh-owner').value.trim());
+      localStorage.setItem('gtd_repo', document.getElementById('gh-repo').value.trim());
+      localStorage.setItem('gtd_token', document.getElementById('gh-token').value.trim());
+      closeSettingsModal();
+      loadData();
+    }
+
+    function exportJSON() {
+      const blob = new Blob([JSON.stringify(db, null, 2)], { type: "application/json" });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `gtd_backup_${new Date().toISOString().split('T')[0]}.json`;
+      a.click();
+    }
+    function triggerImport() { document.getElementById('import-file').click(); }
+    function importJSON(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        try {
+          db = JSON.parse(ev.target.result);
+          persistData();
+        } catch(err) { alert("Archivo JSON no válido."); }
+      };
+      reader.readAsText(file);
+    }
+
+    function escapeHTML(str) {
+      if (!str) return '';
+      return String(str).replace(/[&<>'"]/g, tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag));
+    }
+
+    window.addEventListener('DOMContentLoaded', loadData);
+  </script>
+</body>
+</html>
