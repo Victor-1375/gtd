@@ -22,6 +22,20 @@
   ],
   "tasks": [
     {
+      "id": "t_1793218277201",
+      "name": "Instalar la pastoral de noviembre",
+      "status": "Next Action",
+      "dueDate": "2026-10-28",
+      "startTime": null,
+      "endTime": null,
+      "projectId": null,
+      "situation": null,
+      "person": null,
+      "recurrence": "none",
+      "statusDate": "2026-10-28",
+      "description": null
+    },
+    {
       "id": "t_1793192330156",
       "name": "Rellenar formulario CARF",
       "status": "Next Action",
