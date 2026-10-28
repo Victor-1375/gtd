@@ -52,7 +52,7 @@
     {
       "id": "t_1793192330156",
       "name": "Rellenar formulario CARF",
-      "status": "Next Action",
+      "status": "Completed",
       "dueDate": null,
       "startTime": null,
       "endTime": null,
@@ -60,7 +60,8 @@
       "situation": "Compu",
       "person": null,
       "description": null,
-      "recurrence": "none"
+      "recurrence": "none",
+      "statusDate": "2026-10-28"
     },
     {
       "id": "t_1793154600747",
