@@ -632,6 +632,18 @@
       return Math.round((d1 - d2) / 86400000);
     }
 
+    function getTaskStatusDate(t, fallbackToday) {
+      if (t.statusDate) return t.statusDate;
+      if (t.id && t.id.startsWith('t_')) {
+        const parts = t.id.split('_');
+        const ts = parseInt(parts[1]);
+        if (!isNaN(ts) && ts > 1500000000000 && ts < 2500000000000) {
+          return new Date(ts).toISOString().split('T')[0];
+        }
+      }
+      return fallbackToday || new Date().toISOString().split('T')[0];
+    }
+
     function getRelativeDateLabel(days) {
       if (days < -1) return `hace ${Math.abs(days)} días`;
       if (days === -1) return 'ayer';
@@ -1153,6 +1165,7 @@
       const title = document.getElementById('capture-title').value.trim();
       if (!title) return;
 
+      const today = new Date().toISOString().split('T')[0];
       const due = document.getElementById('capture-due').value || null;
       const start = document.getElementById('capture-start').value || null;
       let end = document.getElementById('capture-end').value || null;
@@ -1176,6 +1189,7 @@
         situation: sit,
         person: person,
         recurrence: recurrence,
+        statusDate: today,
         description: desc
       });
 
@@ -1198,10 +1212,12 @@
           ...t,
           id: 't_' + Date.now() + '_done',
           status: 'Completed',
-          recurrence: 'none'
+          recurrence: 'none',
+          statusDate: today
         };
 
         t.dueDate = nextDate;
+        t.statusDate = today;
         if (t.status === 'Inbox') t.status = 'Next Action';
 
         db.tasks.unshift(completedCopy);
@@ -1209,6 +1225,9 @@
         return;
       }
 
+      if (t.status !== newStatus) {
+        t.statusDate = today;
+      }
       t.status = newStatus;
       persistData();
     }
@@ -1472,11 +1491,7 @@
         html += `
           <div style="margin-top:20px;">
             <div style="display:flex; justify-content:space-between; align-items:center;">
-              <div style="display:flex; align-items:center; gap:6px;">
-                <span class="section-title" style="margin:0;">${escapeHTML(area)}</span>
-                <button class="btn btn-secondary btn-sm" style="padding:1px 6px; font-size:0.75rem;" title="Subir área" onclick="moveArea('${escapeHTML(area)}', -1)">↑</button>
-                <button class="btn btn-secondary btn-sm" style="padding:1px 6px; font-size:0.75rem;" title="Bajar área" onclick="moveArea('${escapeHTML(area)}', 1)">↓</button>
-              </div>
+              <span class="section-title" style="margin:0;">${escapeHTML(area)}</span>
             </div>
         `;
 
@@ -1651,7 +1666,7 @@
         html += reevaluate.length === 0 ? `<p style="color:var(--text-muted); font-size:0.85rem;">Nada que reevaluar.</p>` : reevaluate.map(t => renderTaskCard(t, today)).join('');
 
       } else if (reviewSubTab === 'weekly') {
-        // Alerta de Proyectos Encallados (Stalled Projects)
+        // 1. Alerta de Proyectos Encallados (Stalled Projects)
         const activeProjects = db.projects.filter(p => p.status === 'Active');
         const stalledProjects = activeProjects.filter(p => {
           const hasNextAction = db.tasks.some(t => t.projectId === p.id && t.status === 'Next Action');
@@ -1681,15 +1696,69 @@
           `;
         }
 
-        // Checklist interactivo de Revisión Semanal
+        // 2. Alerta de Next Actions Estancadas (Regla de las 2 semanas / +14 días)
+        const staleNextActions = db.tasks.filter(t => {
+          if (t.status !== 'Next Action') return false;
+          const sDate = getTaskStatusDate(t, today);
+          const daysInStatus = getDaysDiff(today, sDate);
+          return daysInStatus >= 14;
+        });
+
+        if (staleNextActions.length > 0) {
+          html += `
+            <div style="background:#fff1f2; border:1px solid #fecdd3; border-radius:var(--radius); padding:12px; margin-bottom:16px;">
+              <div style="display:flex; justify-content:space-between; align-items:center;">
+                <strong style="color:#9f1239; font-size:0.9rem;">⏳ Next Actions Estancadas (${staleNextActions.length})</strong>
+                <span style="font-size:0.75rem; color:#be123c; font-weight:600;">Regla de 14 días</span>
+              </div>
+              <p style="font-size:0.75rem; color:#9f1239; margin:4px 0 10px;">
+                Llevan más de dos semanas en Next Action. Aplica la regla: <strong>reformúlalas</strong> para hacerlas más pequeñas, muévelas a <strong>Incubadora</strong> si no son para ahora, o <strong>descártalas</strong>:
+              </p>
+              ${staleNextActions.map(t => {
+                const days = getDaysDiff(today, getTaskStatusDate(t, today));
+                const proj = db.projects.find(p => p.id === t.projectId);
+                return `
+                  <div style="background:#fff; padding:10px 12px; border-radius:6px; margin-bottom:8px; border:1px solid #ffe4e6;">
+                    <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px;">
+                      <div>
+                        <span style="font-size:0.9rem; font-weight:600; cursor:pointer;" onclick="openEditModal('${t.id}')">${escapeHTML(t.name)}</span>
+                        <div style="font-size:0.75rem; color:var(--text-muted); margin-top:2px;">
+                          <span style="color:#be123c; font-weight:600;">⏱️ ${days} días sin moverse</span>
+                          ${proj ? ` • <span>📁 ${escapeHTML(proj.name)}</span>` : ''}
+                          ${t.situation ? ` • <span>🏷️ ${escapeHTML(t.situation)}</span>` : ''}
+                          ${t.person ? ` • <span>👤 ${escapeHTML(t.person)}</span>` : ''}
+                        </div>
+                      </div>
+                      <button class="btn btn-secondary btn-sm" title="Marcar como completada" onclick="setTaskStatus('${t.id}', 'Completed')">✓</button>
+                    </div>
+                    <div style="display:flex; gap:6px; margin-top:8px;">
+                      <button class="btn btn-secondary btn-sm" onclick="openEditModal('${t.id}')">✏️ Reformular</button>
+                      <button class="btn btn-secondary btn-sm" onclick="setTaskStatus('${t.id}', 'Reevaluate')">💤 A Incubadora</button>
+                      <button class="btn btn-secondary btn-sm" style="color:var(--danger);" onclick="if(confirm('¿Descartar esta acción definitivamente?')){ db.tasks = db.tasks.filter(x => x.id !== '${t.id}'); persistData(); }">🗑️ Descartar</button>
+                    </div>
+                  </div>
+                `;
+              }).join('')}
+            </div>
+          `;
+        } else {
+          html += `
+            <div style="background:var(--success-bg); border:1px solid #bbf7d0; border-radius:var(--radius); padding:10px 14px; margin-bottom:16px; color:#166534; font-size:0.85rem; font-weight:600;">
+              ✨ ¡Felicidades! Todas tus Next Actions están vivas y activas (ninguna supera las 2 semanas estancada).
+            </div>
+          `;
+        }
+
+        // 3. Checklist interactivo de Revisión Semanal
         const defaultChecklist = [
           { id: 'c1', text: 'Despejar la mente: recopilar notas sueltas, papeles o ideas al Inbox.' },
           { id: 'c2', text: 'Procesar Inbox a Cero: clarificar cada tarea nueva (Next Action, Delegada o Incubadora).' },
           { id: 'c3', text: 'Revisar la Agenda Horizonte: anticipar entregas, ponencias o viajes del próximo mes.' },
           { id: 'c4', text: 'Repasar la lista de Esperando / Delegadas y reclamar lo pendiente.' },
           { id: 'c5', text: 'Revisar proyectos activos y asegurar que no haya proyectos encallados.' },
-          { id: 'c6', text: 'Revisar proyectos en pausa / Algún día y reactivar o archivar lo necesario.' },
-          { id: 'c7', text: 'Revisar Agendas de Personas para próximas reuniones o tutorías.' }
+          { id: 'c6', text: 'Aplicar la Regla de las 2 semanas: reformular, incubar o descartar Next Actions estancadas.' },
+          { id: 'c7', text: 'Revisar proyectos en pausa / Algún día y reactivar o archivar lo necesario.' },
+          { id: 'c8', text: 'Revisar Agendas de Personas para próximas reuniones o tutorías.' }
         ];
 
         let checklistState = {};
@@ -1817,6 +1886,7 @@
     function saveTaskEdits() {
       const id = document.getElementById('edit-id').value;
       const t = db.tasks.find(x => x.id === id);
+      const today = new Date().toISOString().split('T')[0];
       if (t) {
         t.name = document.getElementById('edit-title').value.trim() || t.name;
         t.status = document.getElementById('edit-status').value;
@@ -1829,6 +1899,7 @@
         t.situation = document.getElementById('edit-sit').value.trim() || null;
         t.person = document.getElementById('edit-person').value.trim() || null;
         t.recurrence = document.getElementById('edit-recurrence').value || 'none';
+        t.statusDate = today;
         t.description = document.getElementById('edit-desc').value.trim() || null;
         persistData();
       }
