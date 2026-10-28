@@ -2,7 +2,6 @@
   "areas": [
     "TESIS",
     "PUSC",
-    "Cavabianca",
     "FORMACIÓN",
     "PERSONAL",
     "Pastoral"
@@ -11,12 +10,14 @@
     {
       "id": "p_1793148552654",
       "name": "Congreso en Messina",
-      "area": "TESIS"
+      "area": "TESIS",
+      "status": "Active"
     },
     {
       "id": "p_1793154290032",
       "name": "coe",
-      "area": "Pastoral"
+      "area": "Pastoral",
+      "status": "Active"
     }
   ],
   "tasks": [
@@ -30,7 +31,8 @@
       "projectId": null,
       "situation": "Compu",
       "person": null,
-      "description": null
+      "description": null,
+      "recurrence": "none"
     },
     {
       "id": "t_1793154600747",
@@ -42,7 +44,8 @@
       "projectId": null,
       "situation": "Compu",
       "person": "Gabriel García",
-      "description": null
+      "description": null,
+      "recurrence": "none"
     },
     {
       "id": "t_1793154240819",
@@ -54,7 +57,8 @@
       "projectId": "p_1793154290032",
       "situation": null,
       "person": null,
-      "description": null
+      "description": null,
+      "recurrence": "none"
     },
     {
       "id": "t_1793148596574",
@@ -66,7 +70,8 @@
       "projectId": "p_1793148552654",
       "situation": null,
       "person": "Don Francesco Russo",
-      "description": null
+      "description": null,
+      "recurrence": "none"
     },
     {
       "id": "t_1793148288340",
@@ -78,7 +83,8 @@
       "projectId": null,
       "situation": null,
       "person": null,
-      "description": null
+      "description": null,
+      "recurrence": "none"
     },
     {
       "id": "t_1793147264286",
@@ -90,7 +96,8 @@
       "projectId": null,
       "situation": null,
       "person": "Paquito",
-      "description": "Bla bla bla"
+      "description": "Bla bla bla",
+      "recurrence": "none"
     },
     {
       "id": "t_1793112616823",
@@ -99,7 +106,8 @@
       "dueDate": null,
       "projectId": null,
       "situation": "En casa",
-      "description": null
+      "description": null,
+      "recurrence": "none"
     }
   ]
 }
