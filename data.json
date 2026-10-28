@@ -15,6 +15,18 @@
   ],
   "tasks": [
     {
+      "id": "t_1793154240819",
+      "name": "Preparar meditación Portones",
+      "status": "Next Action",
+      "dueDate": "2026-10-28",
+      "startTime": null,
+      "endTime": null,
+      "projectId": null,
+      "situation": null,
+      "person": null,
+      "description": null
+    },
+    {
       "id": "t_1793148596574",
       "name": "Escribir abstract",
       "status": "Next Action",
