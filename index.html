@@ -1262,6 +1262,67 @@
     }
 
     window.addEventListener('DOMContentLoaded', loadData);
+    // --- ACCESOS DIRECTOS DE TECLADO ---
+    window.addEventListener('keydown', (e) => {
+      // 1. Guardar automáticamente con Ctrl + Enter (o Cmd + Enter)
+      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+        if (document.getElementById('capture-modal')?.classList.contains('open')) {
+          e.preventDefault();
+          handleSaveCapture();
+          return;
+        }
+        if (document.getElementById('edit-modal')?.classList.contains('open')) {
+          e.preventDefault();
+          saveTaskEdits();
+          return;
+        }
+        if (document.getElementById('project-modal')?.classList.contains('open')) {
+          e.preventDefault();
+          saveNewProject();
+          return;
+        }
+        if (document.getElementById('area-modal')?.classList.contains('open')) {
+          e.preventDefault();
+          saveNewArea();
+          return;
+        }
+      }
+
+      // 2. Escape para cerrar cualquier modal abierto
+      if (e.key === 'Escape') {
+        closeCaptureModal();
+        closeEditModal();
+        closeProjectModal();
+        closeAreaModal();
+        closeSettingsModal();
+        return;
+      }
+
+      const activeTag = (document.activeElement && document.activeElement.tagName) ? document.activeElement.tagName.toLowerCase() : '';
+      const isTyping = activeTag === 'input' || activeTag === 'textarea' || activeTag === 'select';
+
+      // 3. Si el cursor está dentro de un campo de texto, no ejecutar atajos de navegación
+      if (isTyping) return;
+
+      const key = e.key.toLowerCase();
+
+      if (key === '+' || key === 'c') {
+        e.preventDefault();
+        openCaptureModal();
+      } else if (key === 'm' || key === '1') {
+        switchTab('mem');
+      } else if (key === 'i' || key === '2') {
+        switchTab('inbox');
+      } else if (key === 'n' || key === '3') {
+        switchTab('next');
+      } else if (key === 'j' || key === '4') {
+        switchTab('projects');
+      } else if (key === 'p' || key === '5') {
+        switchTab('people');
+      } else if (key === 'r' || key === '6') {
+        switchTab('review');
+      }
+    });
   </script>
 </body>
 </html>
