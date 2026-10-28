@@ -385,10 +385,16 @@
           </select>
         </div>
       </div>
-      <div class="form-group" style="margin-bottom: 10px;">
-        <label>Persona Asociada (opcional)</label>
-        <input type="text" id="proj-person" placeholder="Ej: Francesco Russo" autocomplete="off" oninput="handlePersonInput('proj')" onfocus="handlePersonInput('proj')">
-        <div class="autocomplete-dropdown" id="proj-person-dropdown"></div>
+      <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px; margin-bottom: 10px;">
+        <div class="form-group">
+          <label>Fecha Límite (opcional)</label>
+          <input type="date" id="proj-due">
+        </div>
+        <div class="form-group">
+          <label>Persona Asociada (opcional)</label>
+          <input type="text" id="proj-person" placeholder="Ej: Francesco Russo" autocomplete="off" oninput="handlePersonInput('proj')" onfocus="handlePersonInput('proj')">
+          <div class="autocomplete-dropdown" id="proj-person-dropdown"></div>
+        </div>
       </div>
       <div class="form-group" style="margin-bottom: 14px;">
         <label>Notas / Criterio de Finalización</label>
@@ -404,17 +410,21 @@
     </div>
   </div>
 
-  <!-- Modal Nueva Área -->
+  <!-- Modal Gestión de Áreas -->
   <div class="modal-overlay" id="area-modal">
     <div class="modal">
-      <h3 style="margin-bottom: 14px;">Nueva Área de Responsabilidad</h3>
-      <div class="form-group" style="margin-bottom: 14px;">
-        <label>Nombre del Área</label>
-        <input type="text" id="new-area-name" placeholder="Ej: DOCENCIA">
+      <h3 style="margin-bottom: 14px;">Gestionar Áreas de Responsabilidad</h3>
+      <div class="form-group" style="margin-bottom: 16px;">
+        <label>Añadir Nueva Área</label>
+        <div style="display:flex; gap:6px;">
+          <input type="text" id="new-area-name" placeholder="Ej: DOCENCIA" onkeydown="if(event.key === 'Enter'){ event.preventDefault(); saveNewArea(); }">
+          <button class="btn btn-primary btn-sm" onclick="saveNewArea()">Añadir</button>
+        </div>
       </div>
-      <div style="display:flex; justify-content: flex-end; gap:8px;">
-        <button class="btn btn-secondary" onclick="closeAreaModal()">Cancelar</button>
-        <button class="btn btn-primary" onclick="saveNewArea()">Crear Área</button>
+      <label style="font-size:0.75rem; color:var(--text-muted); font-weight:600; margin-bottom:6px; display:block;">Áreas existentes (ordenar, renombrar o eliminar)</label>
+      <div id="areas-manager-list" style="display:flex; flex-direction:column; gap:6px; max-height:240px; overflow-y:auto; padding-right:2px; margin-bottom:16px;"></div>
+      <div style="display:flex; justify-content: flex-end;">
+        <button class="btn btn-secondary" onclick="closeAreaModal()">Cerrar</button>
       </div>
     </div>
   </div>
@@ -487,7 +497,7 @@
     let currentTab = 'mem';
     let memSubTab = 'today'; // 'today' | 'agenda'
     let projectFilterStatus = 'Active'; // 'Active' | 'Paused' | 'Completed'
-    let reviewSubTab = 'weekly'; // 'weekly' | 'delegated' | 'reevaluate' | 'completed'
+    let reviewSubTab = 'delegated'; // 'delegated' | 'reevaluate' | 'weekly' | 'completed'
     let filterSituation = '';
     let selectedPerson = null;
     let selectedProject = null;
@@ -523,7 +533,6 @@
       if (local) {
         try { 
           db = JSON.parse(local);
-          // Garantizar campos por defecto
           if (!db.projects) db.projects = [];
           if (!db.tasks) db.tasks = [];
           db.projects.forEach(p => { if (!p.status) p.status = 'Active'; });
@@ -740,6 +749,26 @@
         lines.push('END:VEVENT');
       });
 
+      // Añadir Proyectos Activos con fecha límite al calendario
+      const activeProjectsWithDate = db.projects.filter(p => p.status === 'Active' && p.dueDate);
+      activeProjectsWithDate.forEach(p => {
+        const dateClean = p.dueDate.replace(/-/g, '');
+        lines.push('BEGIN:VEVENT');
+        lines.push(`UID:proj_${p.id}@migtd`);
+        lines.push(`DTSTAMP:${nowStr}`);
+        lines.push(`SUMMARY:📁 [PROYECTO] ${escapeICS(p.name)}`);
+        let descParts = [`Área: ${p.area}`];
+        if (p.person) descParts.push(`Persona: ${p.person}`);
+        if (p.notes) descParts.push(p.notes);
+        lines.push(`DESCRIPTION:${escapeICS(descParts.join(' | '))}`);
+        lines.push(`DTSTART;VALUE=DATE:${dateClean}`);
+        const nextDay = new Date(p.dueDate);
+        nextDay.setDate(nextDay.getDate() + 1);
+        const nextDayClean = nextDay.toISOString().split('T')[0].replace(/-/g, '');
+        lines.push(`DTEND;VALUE=DATE:${nextDayClean}`);
+        lines.push('END:VEVENT');
+      });
+
       lines.push('END:VCALENDAR');
       return lines.join('\r\n');
     }
@@ -937,6 +966,118 @@
       renderSettingsSituations();
     }
 
+    // --- GESTIÓN DE ÁREAS (MODAL Y REORDENACIÓN) ---
+    function openAreaModal() {
+      document.getElementById('new-area-name').value = '';
+      renderAreaModalList();
+      document.getElementById('area-modal').classList.add('open');
+      setTimeout(() => document.getElementById('new-area-name').focus(), 100);
+    }
+
+    function closeAreaModal() {
+      document.getElementById('area-modal').classList.remove('open');
+    }
+
+    function renderAreaModalList() {
+      const list = document.getElementById('areas-manager-list');
+      if (!list) return;
+      if (!db.areas || db.areas.length === 0) {
+        list.innerHTML = '<p style="font-size:0.8rem; color:var(--text-muted);">No hay áreas definidas.</p>';
+        return;
+      }
+      list.innerHTML = db.areas.map((a, idx) => {
+        const projCount = db.projects.filter(p => p.area === a).length;
+        return `
+          <div style="display:flex; justify-content:space-between; align-items:center; background:var(--tag-bg); padding:7px 10px; border-radius:6px; font-size:0.85rem;">
+            <div>
+              <strong>${escapeHTML(a)}</strong>
+              <span style="font-size:0.75rem; color:var(--text-muted); margin-left:6px;">(${projCount} proyectos)</span>
+            </div>
+            <div style="display:flex; gap:4px; align-items:center;">
+              <button class="btn btn-secondary btn-sm" style="padding:2px 6px; font-size:0.75rem;" title="Subir" onclick="moveArea('${escapeHTML(a)}', -1)">↑</button>
+              <button class="btn btn-secondary btn-sm" style="padding:2px 6px; font-size:0.75rem;" title="Bajar" onclick="moveArea('${escapeHTML(a)}', 1)">↓</button>
+              <button class="btn btn-secondary btn-sm" style="padding:2px 6px; font-size:0.75rem;" onclick="renameArea('${escapeHTML(a)}')">Renombrar</button>
+              <button class="btn btn-secondary btn-sm" style="padding:2px 6px; font-size:0.75rem; color:var(--danger);" onclick="deleteArea('${escapeHTML(a)}')">Eliminar</button>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function saveNewArea() {
+      const name = document.getElementById('new-area-name').value.trim();
+      if (name && !db.areas.includes(name)) {
+        db.areas.push(name);
+        document.getElementById('new-area-name').value = '';
+        persistData();
+        renderAreaModalList();
+      }
+    }
+
+    function moveArea(areaName, dir) {
+      const idx = db.areas.indexOf(areaName);
+      if (idx === -1) return;
+      const targetIdx = idx + dir;
+      if (targetIdx < 0 || targetIdx >= db.areas.length) return;
+      const temp = db.areas[idx];
+      db.areas[idx] = db.areas[targetIdx];
+      db.areas[targetIdx] = temp;
+      persistData();
+      renderAreaModalList();
+    }
+
+    function renameArea(oldName) {
+      const newName = prompt(`Renombrar el área "${oldName}" a:`, oldName);
+      if (!newName || newName.trim() === '' || newName.trim() === oldName) return;
+      const finalName = newName.trim();
+      const idx = db.areas.indexOf(oldName);
+      if (idx !== -1) {
+        db.areas[idx] = finalName;
+        db.projects.forEach(p => {
+          if (p.area === oldName) p.area = finalName;
+        });
+        persistData();
+        renderAreaModalList();
+      }
+    }
+
+    function deleteArea(area) {
+      const count = db.projects.filter(p => p.area === area).length;
+      const msg = count > 0
+        ? `El área "${area}" tiene ${count} proyectos asociados. Si la eliminas, esos proyectos quedarán sin área asignada. ¿Deseas eliminarla definitivamente?`
+        : `¿Eliminar el área "${area}"?`;
+      if (confirm(msg)) {
+        db.areas = db.areas.filter(a => a !== area);
+        persistData();
+        renderAreaModalList();
+      }
+    }
+
+    // --- REORDENACIÓN DE PROYECTOS ---
+    function moveProject(id, dir) {
+      const p = db.projects.find(x => x.id === id);
+      if (!p) return;
+      let areaProjects = db.projects.filter(x => x.area === p.area);
+      if (projectFilterStatus === 'Active') {
+        areaProjects = areaProjects.filter(x => x.status === 'Active');
+      } else if (projectFilterStatus === 'Paused') {
+        areaProjects = areaProjects.filter(x => x.status === 'Paused' || x.status === 'Inbox');
+      } else if (projectFilterStatus === 'Completed') {
+        areaProjects = areaProjects.filter(x => x.status === 'Completed');
+      }
+
+      const idx = areaProjects.findIndex(x => x.id === id);
+      const targetIdx = idx + dir;
+      if (targetIdx < 0 || targetIdx >= areaProjects.length) return;
+      const otherP = areaProjects[targetIdx];
+
+      const i1 = db.projects.indexOf(p);
+      const i2 = db.projects.indexOf(otherP);
+      db.projects[i1] = otherP;
+      db.projects[i2] = p;
+      persistData();
+    }
+
     // --- GESTIÓN DE PERSONAS ---
     function promptRenamePerson(oldName) {
       const newName = prompt(`Renombrar o fusionar a "${oldName}" con:`, oldName);
@@ -1050,11 +1191,9 @@
       const today = new Date().toISOString().split('T')[0];
 
       if (newStatus === 'Completed' && t.recurrence && t.recurrence !== 'none') {
-        // Tarea cíclica: se repite a partir de la fecha de inicio/dueDate, no de compleción
         const baseDate = t.dueDate || today;
         const nextDate = advanceDate(baseDate, t.recurrence);
 
-        // Guardar una copia histórica como completada
         const completedCopy = {
           ...t,
           id: 't_' + Date.now() + '_done',
@@ -1062,9 +1201,7 @@
           recurrence: 'none'
         };
 
-        // Avanzar la tarea activa a su próxima fecha de inicio
         t.dueDate = nextDate;
-        // Si estaba en Inbox la pasamos a Next Action o mantenemos activa
         if (t.status === 'Inbox') t.status = 'Next Action';
 
         db.tasks.unshift(completedCopy);
@@ -1124,7 +1261,6 @@
       `;
 
       if (memSubTab === 'today') {
-        // Excluir tareas de proyectos en pausa o completados
         const overdue = db.tasks.filter(t => t.status !== 'Completed' && t.status !== 'Eliminated' && t.dueDate && t.dueDate < today && isTaskProjectActive(t));
         const dueToday = db.tasks.filter(t => t.status !== 'Completed' && t.status !== 'Eliminated' && t.dueDate === today && isTaskProjectActive(t));
         let nextNoDate = db.tasks.filter(t => t.status === 'Next Action' && !t.dueDate && isTaskProjectActive(t));
@@ -1155,7 +1291,6 @@
         html += upcoming.length === 0 ? `<p style="color:var(--text-muted); font-size:0.85rem; margin-top:8px;">Sin compromisos cercanos.</p>` : upcoming.sort((a,b) => a.dueDate.localeCompare(b.dueDate)).map(t => renderTaskCard(t, today)).join('');
 
       } else {
-        // Agenda Horizonte
         let datedTasks = db.tasks.filter(t => t.status !== 'Completed' && t.status !== 'Eliminated' && t.dueDate && isTaskProjectActive(t));
         if (filterSituation) {
           datedTasks = datedTasks.filter(t => t.situation === filterSituation);
@@ -1239,7 +1374,6 @@
 
     // --- VISTA PROYECTOS (LISTA + DETALLE COMPLETO) ---
     function renderProjects(container, today) {
-      // 1. Vista de DETALLE de un Proyecto concreto
       if (selectedProject) {
         const p = db.projects.find(x => x.id === selectedProject);
         if (!p) {
@@ -1274,6 +1408,7 @@
             <div style="display:flex; flex-wrap:wrap; gap:6px; align-items:center;">
               <span class="tag ${statusClass}">${statusLabel}</span>
               <span class="tag" style="font-weight:600;">Área: ${escapeHTML(p.area)}</span>
+              ${p.dueDate ? `<span class="tag tag-due ${getDaysDiff(p.dueDate, today) < 0 && p.status !== 'Completed' ? 'overdue' : ''}">📅 Fecha límite: ${p.dueDate} (${getRelativeDateLabel(getDaysDiff(p.dueDate, today))})</span>` : ''}
               ${p.person ? `<span class="tag tag-person" onclick="goToPerson(decodeURIComponent('${encodeURIComponent(p.person)}'))">👤 ${escapeHTML(p.person)}</span>` : ''}
             </div>
             ${p.notes ? `<div style="margin-top:12px; font-size:0.85rem; color:var(--text); white-space:pre-wrap; border-top:1px solid var(--border-light); padding-top:8px;">${escapeHTML(p.notes)}</div>` : ''}
@@ -1307,12 +1442,11 @@
         return;
       }
 
-      // 2. Vista de DIRECTORIO de Proyectos
       let html = `
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
           <h2 style="font-size:1.1rem; font-weight:700;">Áreas y Proyectos</h2>
           <div style="display:flex; gap:6px;">
-            <button class="btn btn-secondary btn-sm" onclick="openAreaModal()">+ Área</button>
+            <button class="btn btn-secondary btn-sm" onclick="openAreaModal()">⚙ Áreas</button>
             <button class="btn btn-primary btn-sm" onclick="openCreateProjectModal()">+ Proyecto</button>
           </div>
         </div>
@@ -1338,8 +1472,11 @@
         html += `
           <div style="margin-top:20px;">
             <div style="display:flex; justify-content:space-between; align-items:center;">
-              <span class="section-title" style="margin:0;">${escapeHTML(area)}</span>
-              <button class="btn btn-secondary btn-sm" style="font-size:0.7rem; padding:2px 8px; color:var(--danger)" onclick="deleteArea('${escapeHTML(area)}')">Eliminar Área</button>
+              <div style="display:flex; align-items:center; gap:6px;">
+                <span class="section-title" style="margin:0;">${escapeHTML(area)}</span>
+                <button class="btn btn-secondary btn-sm" style="padding:1px 6px; font-size:0.75rem;" title="Subir área" onclick="moveArea('${escapeHTML(area)}', -1)">↑</button>
+                <button class="btn btn-secondary btn-sm" style="padding:1px 6px; font-size:0.75rem;" title="Bajar área" onclick="moveArea('${escapeHTML(area)}', 1)">↓</button>
+              </div>
             </div>
         `;
 
@@ -1355,18 +1492,31 @@
             else if (p.status === 'Inbox') statusBadge = `<span class="tag tag-status-inbox" style="margin-left:6px;">Inbox</span>`;
             else if (p.status === 'Completed') statusBadge = `<span class="tag tag-status-completed" style="margin-left:6px;">Completado</span>`;
 
+            let dueBadge = '';
+            if (p.dueDate) {
+              const diff = getDaysDiff(p.dueDate, today);
+              const isOverdue = diff < 0 && p.status !== 'Completed';
+              const relLabel = getRelativeDateLabel(diff);
+              dueBadge = `<span class="tag tag-due ${isOverdue ? 'overdue' : ''}" style="margin-left:4px;">📅 ${p.dueDate} (${relLabel})</span>`;
+            }
+
             html += `
               <div class="task-card" style="margin-top:6px; cursor:pointer;" onclick="goToProject('${p.id}')">
                 <div class="task-row">
                   <div>
                     <strong style="font-size:0.95rem;">📁 ${escapeHTML(p.name)}</strong>
                     ${statusBadge}
+                    ${dueBadge}
                     <div style="font-size:0.75rem; color:var(--text-muted); margin-top:4px;">
                       <span>${pendingTasks} acciones pendientes (${nextCount} Next Actions)</span>
                       ${p.person ? ` • <span style="color:#166534; font-weight:600;">👤 ${escapeHTML(p.person)}</span>` : ''}
                     </div>
                   </div>
-                  <button class="btn btn-secondary btn-sm" onclick="event.stopPropagation(); openEditProjectModal('${p.id}')">Editar</button>
+                  <div style="display:flex; gap:4px; align-items:center;">
+                    <button class="btn btn-secondary btn-sm" style="padding:2px 6px; font-size:0.75rem;" title="Subir proyecto" onclick="event.stopPropagation(); moveProject('${p.id}', -1)">↑</button>
+                    <button class="btn btn-secondary btn-sm" style="padding:2px 6px; font-size:0.75rem;" title="Bajar proyecto" onclick="event.stopPropagation(); moveProject('${p.id}', 1)">↓</button>
+                    <button class="btn btn-secondary btn-sm" onclick="event.stopPropagation(); openEditProjectModal('${p.id}')">Editar</button>
+                  </div>
                 </div>
               </div>
             `;
@@ -1392,7 +1542,6 @@
         const waitingFor = personTasks.filter(t => t.status === 'Delegated');
         const otherTasks = personTasks.filter(t => t.status !== 'Next Action' && t.status !== 'Delegated');
 
-        // Proyectos en común con esta persona
         const sharedProjects = db.projects.filter(p => p.person === selectedPerson && p.status !== 'Completed');
 
         let html = `
@@ -1416,6 +1565,7 @@
                   <strong>📁 ${escapeHTML(p.name)}</strong>
                   <span class="tag" style="margin-left:6px;">${p.area}</span>
                   <span class="tag tag-status-active" style="margin-left:4px;">${p.status}</span>
+                  ${p.dueDate ? `<span class="tag tag-due ${getDaysDiff(p.dueDate, today) < 0 && p.status !== 'Completed' ? 'overdue' : ''}" style="margin-left:4px;">📅 ${p.dueDate}</span>` : ''}
                 </div>
                 <span style="font-size:0.75rem; color:var(--primary); font-weight:600;">Ver Proyecto →</span>
               </div>
@@ -1483,15 +1633,25 @@
       let html = `
         <h2 style="font-size:1.1rem; font-weight:700; margin-bottom:12px;">Mantenimiento y Revisión GTD</h2>
         <div class="view-toggle">
-          <button class="${reviewSubTab === 'weekly' ? 'active' : ''}" onclick="reviewSubTab = 'weekly'; render();">⚡ Revisión Semanal</button>
           <button class="${reviewSubTab === 'delegated' ? 'active' : ''}" onclick="reviewSubTab = 'delegated'; render();">⏳ Delegadas</button>
           <button class="${reviewSubTab === 'reevaluate' ? 'active' : ''}" onclick="reviewSubTab = 'reevaluate'; render();">💤 Incubadora</button>
+          <button class="${reviewSubTab === 'weekly' ? 'active' : ''}" onclick="reviewSubTab = 'weekly'; render();">⚡ Revisión Semanal</button>
           <button class="${reviewSubTab === 'completed' ? 'active' : ''}" onclick="reviewSubTab = 'completed'; render();">✓ Historial</button>
         </div>
       `;
 
-      if (reviewSubTab === 'weekly') {
-        // 1. Alerta de Proyectos Encallados (Stalled Projects)
+      if (reviewSubTab === 'delegated') {
+        const delegated = db.tasks.filter(t => t.status === 'Delegated');
+        html += `<div class="section-title">En Espera / Delegadas (${delegated.length})</div>`;
+        html += delegated.length === 0 ? `<p style="color:var(--text-muted); font-size:0.85rem;">Sin elementos delegados.</p>` : delegated.map(t => renderTaskCard(t, today)).join('');
+
+      } else if (reviewSubTab === 'reevaluate') {
+        const reevaluate = db.tasks.filter(t => t.status === 'Reevaluate');
+        html += `<div class="section-title">Incubadora / Reevaluar (${reevaluate.length})</div>`;
+        html += reevaluate.length === 0 ? `<p style="color:var(--text-muted); font-size:0.85rem;">Nada que reevaluar.</p>` : reevaluate.map(t => renderTaskCard(t, today)).join('');
+
+      } else if (reviewSubTab === 'weekly') {
+        // Alerta de Proyectos Encallados (Stalled Projects)
         const activeProjects = db.projects.filter(p => p.status === 'Active');
         const stalledProjects = activeProjects.filter(p => {
           const hasNextAction = db.tasks.some(t => t.projectId === p.id && t.status === 'Next Action');
@@ -1521,7 +1681,7 @@
           `;
         }
 
-        // 2. Checklist interactivo de Revisión Semanal
+        // Checklist interactivo de Revisión Semanal
         const defaultChecklist = [
           { id: 'c1', text: 'Despejar la mente: recopilar notas sueltas, papeles o ideas al Inbox.' },
           { id: 'c2', text: 'Procesar Inbox a Cero: clarificar cada tarea nueva (Next Action, Delegada o Incubadora).' },
@@ -1551,16 +1711,6 @@
             `).join('')}
           </div>
         `;
-
-      } else if (reviewSubTab === 'delegated') {
-        const delegated = db.tasks.filter(t => t.status === 'Delegated');
-        html += `<div class="section-title">En Espera / Delegadas (${delegated.length})</div>`;
-        html += delegated.length === 0 ? `<p style="color:var(--text-muted); font-size:0.85rem;">Sin elementos delegados.</p>` : delegated.map(t => renderTaskCard(t, today)).join('');
-
-      } else if (reviewSubTab === 'reevaluate') {
-        const reevaluate = db.tasks.filter(t => t.status === 'Reevaluate');
-        html += `<div class="section-title">Incubadora / Reevaluar (${reevaluate.length})</div>`;
-        html += reevaluate.length === 0 ? `<p style="color:var(--text-muted); font-size:0.85rem;">Nada que reevaluar.</p>` : reevaluate.map(t => renderTaskCard(t, today)).join('');
 
       } else if (reviewSubTab === 'completed') {
         const completed = db.tasks.filter(t => t.status === 'Completed').slice(0, 30);
@@ -1697,6 +1847,7 @@
       document.getElementById('project-modal-title').textContent = 'Nuevo Proyecto';
       document.getElementById('proj-edit-id').value = '';
       document.getElementById('proj-name').value = '';
+      document.getElementById('proj-due').value = '';
       document.getElementById('proj-status').value = 'Active';
       document.getElementById('proj-person').value = '';
       document.getElementById('proj-notes').value = '';
@@ -1715,6 +1866,7 @@
       document.getElementById('project-modal-title').textContent = 'Editar Proyecto';
       document.getElementById('proj-edit-id').value = p.id;
       document.getElementById('proj-name').value = p.name;
+      document.getElementById('proj-due').value = p.dueDate || '';
       document.getElementById('proj-status').value = p.status || 'Active';
       document.getElementById('proj-person').value = p.person || '';
       document.getElementById('proj-notes').value = p.notes || '';
@@ -1736,28 +1888,29 @@
       const name = document.getElementById('proj-name').value.trim();
       const area = document.getElementById('proj-area').value;
       const status = document.getElementById('proj-status').value;
+      const due = document.getElementById('proj-due').value || null;
       const person = document.getElementById('proj-person').value.trim() || null;
       const notes = document.getElementById('proj-notes').value.trim() || null;
 
       if (!name) return;
 
       if (id) {
-        // Editar existente
         const p = db.projects.find(x => x.id === id);
         if (p) {
           p.name = name;
           p.area = area;
           p.status = status;
+          p.dueDate = due;
           p.person = person;
           p.notes = notes;
         }
       } else {
-        // Crear nuevo
         const newProj = {
           id: 'p_' + Date.now(),
           name: name,
           area: area,
           status: status,
+          dueDate: due,
           person: person,
           notes: notes
         };
@@ -1777,27 +1930,6 @@
         db.tasks.forEach(t => { if (t.projectId === id) t.projectId = null; });
         if (selectedProject === id) selectedProject = null;
         closeProjectModal();
-        persistData();
-      }
-    }
-
-    // Modal Área
-    function openAreaModal() {
-      document.getElementById('new-area-name').value = '';
-      document.getElementById('area-modal').classList.add('open');
-    }
-    function closeAreaModal() { document.getElementById('area-modal').classList.remove('open'); }
-    function saveNewArea() {
-      const name = document.getElementById('new-area-name').value.trim();
-      if (name && !db.areas.includes(name)) {
-        db.areas.push(name);
-        closeAreaModal();
-        persistData();
-      }
-    }
-    function deleteArea(area) {
-      if (confirm(`¿Eliminar el área "${area}"? Los proyectos quedarán sin área asignada.`)) {
-        db.areas = db.areas.filter(a => a !== area);
         persistData();
       }
     }
