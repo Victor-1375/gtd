@@ -6,7 +6,13 @@
     "FORMACIÓN",
     "PERSONAL"
   ],
-  "projects": [],
+  "projects": [
+    {
+      "id": "p_1793148552654",
+      "name": "Congreso en Messina",
+      "area": "TESIS"
+    }
+  ],
   "tasks": [
     {
       "id": "t_1793148288340",
