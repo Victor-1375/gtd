@@ -22,6 +22,20 @@
   ],
   "tasks": [
     {
+      "id": "t_1793229622522",
+      "name": "Comentar con Alejo Macía sobre las clases",
+      "status": "Next Action",
+      "dueDate": null,
+      "startTime": null,
+      "endTime": null,
+      "projectId": null,
+      "situation": null,
+      "person": "Alejo Macía",
+      "recurrence": "none",
+      "statusDate": "2026-10-28",
+      "description": "Comentar sobre su experiencia en las clases con las chicas de Confirmación."
+    },
+    {
       "id": "t_1793218303782",
       "name": "Aclarar con David Samudio el 5 de noviembre",
       "status": "Completed",
