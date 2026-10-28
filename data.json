@@ -78,7 +78,7 @@
     {
       "id": "t_1793154240819",
       "name": "Preparar meditación Portones",
-      "status": "Next Action",
+      "status": "Completed",
       "dueDate": "2026-10-28",
       "startTime": null,
       "endTime": null,
@@ -86,7 +86,8 @@
       "situation": null,
       "person": null,
       "description": null,
-      "recurrence": "none"
+      "recurrence": "none",
+      "statusDate": "2026-10-28"
     },
     {
       "id": "t_1793148596574",
