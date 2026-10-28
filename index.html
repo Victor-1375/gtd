@@ -64,6 +64,17 @@
     .btn-secondary:hover { background: #e2e8f0; }
     .btn-sm { padding: 5px 9px; font-size: 0.8rem; border-radius: 6px; }
 
+    /* Selector de sub-vistas (MEM) */
+    .view-toggle {
+      display: flex; gap: 4px; background: var(--border-light); padding: 3px;
+      border-radius: 8px; margin-bottom: 12px;
+    }
+    .view-toggle button {
+      flex: 1; border: none; background: none; padding: 7px 10px; font-size: 0.82rem;
+      font-weight: 600; color: var(--text-muted); border-radius: 6px; cursor: pointer; transition: all 0.15s ease;
+    }
+    .view-toggle button.active { background: var(--surface); color: var(--primary); box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
+
     .form-group { display: flex; flex-direction: column; gap: 4px; position: relative; }
     .form-group label { font-size: 0.75rem; color: var(--text-muted); font-weight: 600; }
     .form-group select, .form-group input, .form-group textarea {
@@ -408,8 +419,9 @@
       tasks: []
     };
     let currentTab = 'mem';
+    let memSubTab = 'today'; // 'today' | 'agenda'
     let filterSituation = '';
-    let selectedPerson = null; // Para la vista 1 a 1 en Personas
+    let selectedPerson = null;
     let ghShaData = null;
     let ghShaIcs = null;
 
@@ -522,6 +534,30 @@
       const el = document.getElementById('sync-status');
       el.textContent = text;
       el.className = 'status-badge ' + cls;
+    }
+
+    // --- CÁLCULO DE FECHAS RELATIVAS Y FORMATO ---
+    function getDaysDiff(dateStr, todayStr) {
+      const d1 = new Date(dateStr + 'T00:00:00');
+      const d2 = new Date(todayStr + 'T00:00:00');
+      return Math.round((d1 - d2) / 86400000);
+    }
+
+    function getRelativeDateLabel(days) {
+      if (days < -1) return `hace ${Math.abs(days)} días`;
+      if (days === -1) return 'ayer';
+      if (days === 0) return 'hoy';
+      if (days === 1) return 'mañana';
+      if (days < 30) return `en ${days} días`;
+      const months = Math.round(days / 30.5);
+      return months === 1 ? 'en 1 mes' : `en ${months} meses`;
+    }
+
+    function getMonthYearLabel(dateStr) {
+      const [y, m] = dateStr.split('-');
+      const d = new Date(y, parseInt(m) - 1, 1);
+      const str = d.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' });
+      return str.charAt(0).toUpperCase() + str.slice(1);
     }
 
     // --- GENERADOR iCAL / .ICS ---
@@ -660,7 +696,6 @@
 
     // --- AUTOCOMPLETADO DE PERSONA ---
     function getActivePersons() {
-      // Personas que tienen al menos una tarea pendiente (desaparecen automáticamente al terminar)
       const set = new Set();
       db.tasks.forEach(t => {
         if (t.status !== 'Completed' && t.status !== 'Eliminated' && t.person && t.person.trim()) {
@@ -671,7 +706,6 @@
     }
 
     function getAllPersonsHistory() {
-      // Todas las personas que existen en el histórico de tareas
       const set = new Set();
       db.tasks.forEach(t => {
         if (t.person && t.person.trim()) set.add(t.person.trim());
@@ -765,7 +799,7 @@
       renderSettingsSituations();
     }
 
-    // --- GESTIÓN DE PERSONAS (RENOMBRAR / FUSIONAR) ---
+    // --- GESTIÓN DE PERSONAS ---
     function promptRenamePerson(oldName) {
       const newName = prompt(`Renombrar o fusionar a "${oldName}" con:`, oldName);
       if (!newName || newName.trim() === '' || newName.trim() === oldName) return;
@@ -850,12 +884,22 @@
       }
     }
 
-    // --- RENDERIZADO PRINCIPAL ---
+    // --- NAVEGACIÓN Y VISTAS ---
     function switchTab(tab) {
       currentTab = tab;
       document.querySelectorAll('.nav-btn').forEach((btn, idx) => {
         btn.classList.toggle('active', ['mem', 'inbox', 'next', 'projects', 'people', 'review'][idx] === tab);
       });
+      render();
+    }
+
+    function setMemSubTab(sub) {
+      memSubTab = sub;
+      render();
+    }
+
+    function setSituationFilter(s) {
+      filterSituation = s;
       render();
     }
 
@@ -872,61 +916,133 @@
       else if (currentTab === 'review') renderReview(container, today);
     }
 
+    // --- VISTA MEM (HOY Y AHORA / AGENDA HORIZONTE) ---
     function renderMEM(container, today) {
-      const nextWeek = new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0];
-
-      const overdue = db.tasks.filter(t => t.status !== 'Completed' && t.status !== 'Eliminated' && t.dueDate && t.dueDate < today);
-      const dueToday = db.tasks.filter(t => t.status !== 'Completed' && t.status !== 'Eliminated' && t.dueDate === today);
-      const nextNoDate = db.tasks.filter(t => t.status === 'Next Action' && !t.dueDate);
-      const upcoming = db.tasks.filter(t => t.status !== 'Completed' && t.status !== 'Eliminated' && t.dueDate && t.dueDate > today && t.dueDate <= nextWeek);
-
-      let nextFiltered = nextNoDate;
-      if (filterSituation) {
-        nextFiltered = nextFiltered.filter(t => t.situation === filterSituation);
-      }
-
       const allSituations = getAllSituations();
 
       let html = `
+        <div class="view-toggle">
+          <button class="${memSubTab === 'today' ? 'active' : ''}" onclick="setMemSubTab('today')">⚡ Hoy y Ahora</button>
+          <button class="${memSubTab === 'agenda' ? 'active' : ''}" onclick="setMemSubTab('agenda')">📅 Agenda Horizonte</button>
+        </div>
         <div class="filter-bar">
           <span class="filter-chip ${filterSituation === '' ? 'active' : ''}" onclick="setSituationFilter('')">Todas</span>
           ${allSituations.map(s => `<span class="filter-chip ${filterSituation === s ? 'active' : ''}" onclick="setSituationFilter('${escapeHTML(s)}')">${escapeHTML(s)}</span>`).join('')}
         </div>
       `;
 
-      if (overdue.length > 0) {
-        html += `<div class="section-title" style="color:var(--danger)">⚠️ Vencidas (${overdue.length})</div>`;
-        html += overdue.map(t => renderTaskCard(t, today)).join('');
+      if (memSubTab === 'today') {
+        // --- SUBVISTA 1: HOY Y AHORA ---
+        const overdue = db.tasks.filter(t => t.status !== 'Completed' && t.status !== 'Eliminated' && t.dueDate && t.dueDate < today);
+        const dueToday = db.tasks.filter(t => t.status !== 'Completed' && t.status !== 'Eliminated' && t.dueDate === today);
+        let nextNoDate = db.tasks.filter(t => t.status === 'Next Action' && !t.dueDate);
+        const nextWeek = new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0];
+        const upcoming = db.tasks.filter(t => t.status !== 'Completed' && t.status !== 'Eliminated' && t.dueDate && t.dueDate > today && t.dueDate <= nextWeek);
+
+        if (filterSituation) {
+          nextNoDate = nextNoDate.filter(t => t.situation === filterSituation);
+        }
+
+        if (overdue.length > 0) {
+          html += `<div class="section-title" style="color:var(--danger)">⚠️ Vencidas (${overdue.length})</div>`;
+          html += overdue.map(t => renderTaskCard(t, today)).join('');
+        }
+
+        html += `<div class="section-title">Para Hoy (${dueToday.length})</div>`;
+        html += dueToday.length === 0 ? `<p style="color:var(--text-muted); font-size:0.85rem;">Sin compromisos para hoy.</p>` : dueToday.map(t => renderTaskCard(t, today)).join('');
+
+        html += `<div class="section-title">Siguientes Acciones Disponibles (${nextNoDate.length})</div>`;
+        html += nextNoDate.length === 0 ? `<p style="color:var(--text-muted); font-size:0.85rem;">Sin acciones en este contexto.</p>` : nextNoDate.map(t => renderTaskCard(t, today)).join('');
+
+        html += `
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-top:24px;">
+            <span class="section-title" style="margin:0;">Próximos 7 días (${upcoming.length})</span>
+            <button class="btn btn-secondary btn-sm" onclick="setMemSubTab('agenda')">Ver Agenda Completa →</button>
+          </div>
+        `;
+        html += upcoming.length === 0 ? `<p style="color:var(--text-muted); font-size:0.85rem; margin-top:8px;">Sin compromisos cercanos.</p>` : upcoming.sort((a,b) => a.dueDate.localeCompare(b.dueDate)).map(t => renderTaskCard(t, today)).join('');
+
+      } else {
+        // --- SUBVISTA 2: AGENDA HORIZONTE (MEDIO Y LARGO PLAZO) ---
+        let datedTasks = db.tasks.filter(t => t.status !== 'Completed' && t.status !== 'Eliminated' && t.dueDate);
+        if (filterSituation) {
+          datedTasks = datedTasks.filter(t => t.situation === filterSituation);
+        }
+        datedTasks.sort((a,b) => a.dueDate.localeCompare(b.dueDate));
+
+        const overdue = datedTasks.filter(t => getDaysDiff(t.dueDate, today) < 0);
+        const todayTasks = datedTasks.filter(t => getDaysDiff(t.dueDate, today) === 0);
+        const thisWeek = datedTasks.filter(t => { const d = getDaysDiff(t.dueDate, today); return d >= 1 && d <= 7; });
+        const nextWeeks = datedTasks.filter(t => { const d = getDaysDiff(t.dueDate, today); return d > 7 && d <= 30; });
+        const futureTasks = datedTasks.filter(t => getDaysDiff(t.dueDate, today) > 30);
+
+        if (datedTasks.length === 0) {
+          html += `<p style="color:var(--text-muted); font-size:0.9rem; margin-top:20px;">No hay tareas programadas con fecha límite.</p>`;
+        }
+
+        if (overdue.length > 0) {
+          html += `<div class="section-title" style="color:var(--danger)">⚠️ Vencidas (${overdue.length})</div>`;
+          html += overdue.map(t => renderTaskCard(t, today, true)).join('');
+        }
+
+        if (todayTasks.length > 0) {
+          html += `<div class="section-title">Para Hoy (${todayTasks.length})</div>`;
+          html += todayTasks.map(t => renderTaskCard(t, today, true)).join('');
+        }
+
+        if (thisWeek.length > 0) {
+          html += `<div class="section-title">Esta Semana (Próximos 7 días) (${thisWeek.length})</div>`;
+          html += thisWeek.map(t => renderTaskCard(t, today, true)).join('');
+        }
+
+        if (nextWeeks.length > 0) {
+          html += `<div class="section-title">Próximas 2 a 4 semanas (${nextWeeks.length})</div>`;
+          html += nextWeeks.map(t => renderTaskCard(t, today, true)).join('');
+        }
+
+        // Agrupación por meses para el largo plazo
+        if (futureTasks.length > 0) {
+          const monthGroups = {};
+          futureTasks.forEach(t => {
+            const label = getMonthYearLabel(t.dueDate);
+            if (!monthGroups[label]) monthGroups[label] = [];
+            monthGroups[label].push(t);
+          });
+
+          Object.keys(monthGroups).forEach(monthLabel => {
+            html += `<div class="section-title" style="color:var(--primary);">${monthLabel} (${monthGroups[monthLabel].length})</div>`;
+            html += monthGroups[monthLabel].map(t => renderTaskCard(t, today, true)).join('');
+          });
+        }
       }
-
-      html += `<div class="section-title">Para Hoy (${dueToday.length})</div>`;
-      html += dueToday.length === 0 ? `<p style="color:var(--text-muted); font-size:0.85rem;">Sin compromisos para hoy.</p>` : dueToday.map(t => renderTaskCard(t, today)).join('');
-
-      html += `<div class="section-title">Siguientes Acciones (${nextFiltered.length})</div>`;
-      html += nextFiltered.length === 0 ? `<p style="color:var(--text-muted); font-size:0.85rem;">Sin acciones en este contexto.</p>` : nextFiltered.map(t => renderTaskCard(t, today)).join('');
-
-      html += `<div class="section-title">Upcoming (Próximos 7 días) (${upcoming.length})</div>`;
-      html += upcoming.length === 0 ? `<p style="color:var(--text-muted); font-size:0.85rem;">Sin compromisos cercanos.</p>` : upcoming.sort((a,b) => a.dueDate.localeCompare(b.dueDate)).map(t => renderTaskCard(t, today)).join('');
 
       container.innerHTML = html;
     }
 
-    function setSituationFilter(s) {
-      filterSituation = s;
-      render();
+    // --- VISTA NEXT ACTIONS (CON FILTRO DE SITUACIÓN) ---
+    function renderNextActions(container, today) {
+      let nextTasks = db.tasks.filter(t => t.status === 'Next Action');
+      const allSituations = getAllSituations();
+
+      if (filterSituation) {
+        nextTasks = nextTasks.filter(t => t.situation === filterSituation);
+      }
+
+      let html = `
+        <div class="filter-bar">
+          <span class="filter-chip ${filterSituation === '' ? 'active' : ''}" onclick="setSituationFilter('')">Todas</span>
+          ${allSituations.map(s => `<span class="filter-chip ${filterSituation === s ? 'active' : ''}" onclick="setSituationFilter('${escapeHTML(s)}')">${escapeHTML(s)}</span>`).join('')}
+        </div>
+        <div class="section-title">Next Actions ${filterSituation ? `— ${escapeHTML(filterSituation)}` : ''} (${nextTasks.length})</div>
+      `;
+      html += nextTasks.length === 0 ? `<p style="color:var(--text-muted); font-size:0.9rem;">No hay acciones activas${filterSituation ? ' para este contexto' : ''}.</p>` : nextTasks.map(t => renderTaskCard(t, today)).join('');
+      container.innerHTML = html;
     }
 
     function renderInbox(container, today) {
       const inboxTasks = db.tasks.filter(t => t.status === 'Inbox');
       let html = `<div class="section-title">Bandeja de Entrada (${inboxTasks.length})</div>`;
       html += inboxTasks.length === 0 ? `<p style="color:var(--text-muted); font-size:0.9rem;">Bandeja limpia.</p>` : inboxTasks.map(t => renderTaskCard(t, today)).join('');
-      container.innerHTML = html;
-    }
-
-    function renderNextActions(container, today) {
-      const nextTasks = db.tasks.filter(t => t.status === 'Next Action');
-      let html = `<div class="section-title">Todas las Next Actions (${nextTasks.length})</div>`;
-      html += nextTasks.length === 0 ? `<p style="color:var(--text-muted); font-size:0.9rem;">No hay acciones activas.</p>` : nextTasks.map(t => renderTaskCard(t, today)).join('');
       container.innerHTML = html;
     }
 
@@ -979,12 +1095,10 @@
     function renderPeople(container, today) {
       const activePersons = getActivePersons();
 
-      // Si la persona seleccionada ya no tiene tareas activas, resetear selección
       if (selectedPerson && !activePersons.includes(selectedPerson)) {
         selectedPerson = null;
       }
 
-      // Si hay una persona seleccionada, mostrar su Agenda 1 a 1 detallada
       if (selectedPerson) {
         const personTasks = db.tasks.filter(t => t.person === selectedPerson && t.status !== 'Completed' && t.status !== 'Eliminated');
         const toDiscuss = personTasks.filter(t => t.status === 'Next Action');
@@ -1018,7 +1132,6 @@
         return;
       }
 
-      // Si no hay nadie seleccionado, mostrar el directorio de personas con tareas activas
       let html = `
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
           <h2 style="font-size:1.1rem; font-weight:700;">Agendas 1 a 1 (Personas)</h2>
@@ -1076,10 +1189,17 @@
       container.innerHTML = html;
     }
 
-    function renderTaskCard(t, today) {
+    function renderTaskCard(t, today, showRelativeDate = false) {
       const proj = db.projects.find(p => p.id === t.projectId);
       const isOverdue = t.dueDate && t.dueDate < today && t.status !== 'Completed';
       const timeStr = t.startTime ? ` | ⏰ ${t.startTime}${t.endTime ? '-' + t.endTime : ''}` : '';
+      
+      let relativeTag = '';
+      if (t.dueDate) {
+        const diff = getDaysDiff(t.dueDate, today);
+        const relLabel = getRelativeDateLabel(diff);
+        relativeTag = `<span class="tag tag-due ${isOverdue ? 'overdue' : ''}">📅 ${t.dueDate}${timeStr} (${relLabel})</span>`;
+      }
 
       return `
         <div class="task-card">
@@ -1089,7 +1209,7 @@
           </div>
           <div class="task-meta">
             ${t.status !== 'Next Action' && t.status !== 'Inbox' ? `<span class="tag">${t.status}</span>` : ''}
-            ${t.dueDate ? `<span class="tag tag-due ${isOverdue ? 'overdue' : ''}">📅 ${t.dueDate}${timeStr}</span>` : ''}
+            ${relativeTag}
             ${proj ? `<span class="tag tag-project">📁 ${escapeHTML(proj.name)}</span>` : ''}
             ${t.situation ? `<span class="tag tag-sit">🏷️ ${escapeHTML(t.situation)}</span>` : ''}
             ${t.person ? `<span class="tag tag-person" onclick="event.stopPropagation(); goToPerson(decodeURIComponent('${encodeURIComponent(t.person)}'))" title="Ver agenda 1 a 1">👤 ${escapeHTML(t.person)}</span>` : ''}
@@ -1261,10 +1381,9 @@
       return str.replace(/[&<>'"]/g, tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag));
     }
 
-    window.addEventListener('DOMContentLoaded', loadData);
     // --- ACCESOS DIRECTOS DE TECLADO ---
     window.addEventListener('keydown', (e) => {
-      // 1. Guardar automáticamente con Ctrl + Enter (o Cmd + Enter)
+      // 1. Guardar con Ctrl + Enter (o Cmd + Enter)
       if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
         if (document.getElementById('capture-modal')?.classList.contains('open')) {
           e.preventDefault();
@@ -1288,7 +1407,7 @@
         }
       }
 
-      // 2. Escape para cerrar cualquier modal abierto
+      // 2. Escape para cerrar modales
       if (e.key === 'Escape') {
         closeCaptureModal();
         closeEditModal();
@@ -1301,7 +1420,6 @@
       const activeTag = (document.activeElement && document.activeElement.tagName) ? document.activeElement.tagName.toLowerCase() : '';
       const isTyping = activeTag === 'input' || activeTag === 'textarea' || activeTag === 'select';
 
-      // 3. Si el cursor está dentro de un campo de texto, no ejecutar atajos de navegación
       if (isTyping) return;
 
       const key = e.key.toLowerCase();
@@ -1323,6 +1441,8 @@
         switchTab('review');
       }
     });
+
+    window.addEventListener('DOMContentLoaded', loadData);
   </script>
 </body>
 </html>
