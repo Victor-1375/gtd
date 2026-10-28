@@ -21,6 +21,18 @@
   ],
   "tasks": [
     {
+      "id": "t_1793154600747",
+      "name": "Enviar presupuesto cdv",
+      "status": "Next Action",
+      "dueDate": "2026-11-11",
+      "startTime": null,
+      "endTime": null,
+      "projectId": null,
+      "situation": "Compu",
+      "person": "Gabriel García",
+      "description": null
+    },
+    {
       "id": "t_1793154240819",
       "name": "Preparar meditación Portones",
       "status": "Next Action",
