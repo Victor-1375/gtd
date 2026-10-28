@@ -18,6 +18,15 @@
       "name": "coe",
       "area": "Pastoral",
       "status": "Active"
+    },
+    {
+      "id": "p_1793229652349",
+      "name": "Iragua",
+      "area": "Pastoral",
+      "status": "Active",
+      "dueDate": "2027-04-11",
+      "person": "David Samudio",
+      "notes": null
     }
   ],
   "tasks": [
