@@ -1,3 +1,1597 @@
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>Mi GTD</title>
+  <style>
+    :root {
+      --bg: #f8fafc;
+      --surface: #ffffff;
+      --border: #cbd5e1;
+      --border-light: #e2e8f0;
+      --text: #0f172a;
+      --text-muted: #64748b;
+      --primary: #2563eb;
+      --primary-hover: #1d4ed8;
+      --danger: #dc2626;
+      --danger-bg: #fee2e2;
+      --warning-bg: #fef3c7;
+      --warning-text: #92400e;
+      --success: #16a34a;
+      --success-bg: #dcfce7;
+      --tag-bg: #f1f5f9;
+      --radius: 10px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; -webkit-tap-highlight-color: transparent; }
+    body { background: var(--bg); color: var(--text); padding-bottom: 90px; min-height: 100vh; }
+
+    header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border-light);
+      position: sticky;
+      top: 0;
+      z-index: 30;
+      padding: 12px 16px;
+    }
+    .header-top { display: flex; justify-content: space-between; align-items: center; max-width: 800px; margin: 0 auto; }
+    .header-title { font-size: 1.1rem; font-weight: 700; letter-spacing: -0.02em; }
+    .status-badge { font-size: 0.75rem; padding: 3px 9px; border-radius: 999px; background: #e2e8f0; color: var(--text-muted); font-weight: 600; }
+    .status-badge.syncing { background: #dbeafe; color: var(--primary); }
+    .status-badge.synced { background: var(--success-bg); color: var(--success); }
+    .status-badge.error { background: var(--danger-bg); color: var(--danger); }
+
+    /* Botón Flotante de Acción (FAB) */
+    .fab {
+      position: fixed; bottom: 74px; right: 20px; width: 54px; height: 54px;
+      border-radius: 50%; background: var(--primary); color: white; border: none;
+      font-size: 1.8rem; line-height: 1; box-shadow: 0 4px 14px rgba(37, 99, 235, 0.4);
+      cursor: pointer; z-index: 45; display: flex; align-items: center; justify-content: center;
+      transition: transform 0.15s ease;
+    }
+    .fab:active { transform: scale(0.92); }
+
+    /* Botones y Formularios */
+    .btn {
+      padding: 10px 15px; border-radius: var(--radius); border: none;
+      font-weight: 600; cursor: pointer; font-size: 0.9rem; transition: background 0.15s ease;
+      display: inline-flex; align-items: center; justify-content: center; gap: 4px;
+    }
+    .btn-primary { background: var(--primary); color: white; }
+    .btn-primary:hover { background: var(--primary-hover); }
+    .btn-secondary { background: var(--tag-bg); color: var(--text); border: 1px solid var(--border-light); }
+    .btn-secondary:hover { background: #e2e8f0; }
+    .btn-sm { padding: 5px 9px; font-size: 0.8rem; border-radius: 6px; }
+
+    .form-group { display: flex; flex-direction: column; gap: 4px; position: relative; }
+    .form-group label { font-size: 0.75rem; color: var(--text-muted); font-weight: 600; }
+    .form-group select, .form-group input, .form-group textarea {
+      padding: 9px 11px; border: 1px solid var(--border); border-radius: 6px; font-size: 0.9rem; outline: none; background: #fff;
+    }
+    .form-group select:focus, .form-group input:focus, .form-group textarea:focus { border-color: var(--primary); }
+
+    /* Desplegables de Autocompletado */
+    .autocomplete-dropdown {
+      position: absolute; top: calc(100% + 2px); left: 0; right: 0; background: var(--surface);
+      border: 1px solid var(--border); border-radius: 6px; max-height: 180px; overflow-y: auto;
+      z-index: 120; box-shadow: 0 4px 16px rgba(0,0,0,0.1); display: none;
+    }
+    .autocomplete-dropdown.open { display: block; }
+    .autocomplete-item {
+      padding: 8px 12px; font-size: 0.85rem; cursor: pointer; display: flex; align-items: center;
+      justify-content: space-between; border-bottom: 1px solid var(--border-light);
+    }
+    .autocomplete-item:last-child { border-bottom: none; }
+    .autocomplete-item:hover { background: var(--tag-bg); color: var(--primary); }
+    .autocomplete-item.create-new { color: var(--primary); font-weight: 600; }
+
+    /* Navegación Inferior */
+    nav {
+      position: fixed; bottom: 0; left: 0; right: 0; background: var(--surface);
+      border-top: 1px solid var(--border-light); display: flex; justify-content: space-around;
+      padding: 8px 0; z-index: 40;
+    }
+    .nav-btn {
+      display: flex; flex-direction: column; align-items: center; gap: 3px;
+      background: none; border: none; color: var(--text-muted); font-size: 0.7rem; cursor: pointer; flex: 1; padding: 4px 0;
+    }
+    .nav-btn.active { color: var(--primary); font-weight: 700; }
+    .nav-btn span:first-child { font-size: 1.1rem; }
+
+    /* Contenido */
+    main { max-width: 800px; margin: 16px auto; padding: 0 16px; }
+    .filter-bar { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 8px; margin-bottom: 12px; }
+    .filter-chip {
+      padding: 5px 12px; border-radius: 999px; background: var(--surface);
+      border: 1px solid var(--border-light); font-size: 0.8rem; white-space: nowrap; cursor: pointer; color: var(--text-muted);
+    }
+    .filter-chip.active { background: var(--primary); color: white; border-color: var(--primary); font-weight: 600; }
+
+    .section-title {
+      font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.06em;
+      color: var(--text-muted); margin: 24px 0 8px; font-weight: 700;
+    }
+    .task-card {
+      background: var(--surface); border: 1px solid var(--border-light); border-radius: var(--radius);
+      padding: 12px 14px; margin-bottom: 8px; display: flex; flex-direction: column; gap: 6px;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.02);
+    }
+    .task-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+    .task-title { font-size: 0.95rem; font-weight: 500; word-break: break-word; flex: 1; line-height: 1.4; cursor: pointer; }
+    .task-meta { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; font-size: 0.75rem; }
+    .tag { padding: 3px 7px; border-radius: 4px; background: var(--tag-bg); color: var(--text-muted); }
+    .tag-due { background: var(--warning-bg); color: var(--warning-text); font-weight: 600; }
+    .tag-due.overdue { background: var(--danger-bg); color: var(--danger); font-weight: 700; }
+    .tag-project { background: #e0f2fe; color: #0369a1; font-weight: 600; }
+    .tag-sit { background: #ede9fe; color: #6d28d9; font-weight: 600; }
+    .tag-person { background: #f0fdf4; color: #166534; font-weight: 600; cursor: pointer; }
+    .tag-person:hover { text-decoration: underline; }
+    .task-actions { display: flex; gap: 6px; margin-top: 4px; }
+
+    /* Modales */
+    .modal-overlay {
+      position: fixed; inset: 0; background: rgba(15, 23, 42, 0.45); display: none;
+      align-items: center; justify-content: center; z-index: 100; padding: 16px;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal {
+      background: var(--surface); padding: 20px; border-radius: var(--radius);
+      width: 100%; max-width: 500px; max-height: 90vh; overflow-y: auto; box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+    }
+    .settings-group { margin-bottom: 18px; padding-bottom: 16px; border-bottom: 1px solid var(--border-light); }
+    .settings-group:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+    .settings-group-title { font-size: 0.85rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--primary); margin-bottom: 10px; }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="header-top">
+      <div class="header-title">Mi GTD</div>
+      <div style="display:flex; align-items:center; gap:8px;">
+        <span id="sync-status" class="status-badge">Iniciando...</span>
+        <button class="btn btn-secondary btn-sm" onclick="openSettingsModal()">⚙ Ajustes</button>
+      </div>
+    </div>
+  </header>
+
+  <main id="app-content"></main>
+
+  <!-- Botón flotante para Captura Rápida -->
+  <button class="fab" onclick="openCaptureModal()" title="Capturar Acción">+</button>
+
+  <!-- Navegación Inferior -->
+  <nav>
+    <button class="nav-btn active" onclick="switchTab('mem')">
+      <span>⚡</span><span>MEM</span>
+    </button>
+    <button class="nav-btn" onclick="switchTab('inbox')">
+      <span>📥</span><span>Inbox</span>
+    </button>
+    <button class="nav-btn" onclick="switchTab('next')">
+      <span>🎯</span><span>Next Action</span>
+    </button>
+    <button class="nav-btn" onclick="switchTab('projects')">
+      <span>📁</span><span>Proyectos</span>
+    </button>
+    <button class="nav-btn" onclick="switchTab('people')">
+      <span>👤</span><span>Personas</span>
+    </button>
+    <button class="nav-btn" onclick="switchTab('review')">
+      <span>🔄</span><span>Revisión</span>
+    </button>
+  </nav>
+
+  <!-- Modal Captura Rápida -->
+  <div class="modal-overlay" id="capture-modal">
+    <div class="modal">
+      <h3 style="margin-bottom: 12px;">Nueva Acción</h3>
+      <div class="form-group" style="margin-bottom: 10px;">
+        <label>Acción / Tarea</label>
+        <input type="text" id="capture-title" placeholder="¿Qué hay que hacer? (Enter)" onkeydown="if(event.key === 'Enter') handleSaveCapture()">
+      </div>
+      <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px; margin-bottom: 10px;">
+        <div class="form-group">
+          <label>Estado</label>
+          <select id="capture-status">
+            <option value="Inbox" selected>Inbox</option>
+            <option value="Next Action">Next Action</option>
+            <option value="Delegated">Delegated</option>
+            <option value="Reevaluate">Reevaluate</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Fecha Límite</label>
+          <input type="date" id="capture-due">
+        </div>
+      </div>
+      <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px; margin-bottom: 10px;">
+        <div class="form-group">
+          <label>Hora Inicio (opcional)</label>
+          <input type="time" id="capture-start">
+        </div>
+        <div class="form-group">
+          <label>Hora Fin (def: +1h)</label>
+          <input type="time" id="capture-end">
+        </div>
+      </div>
+      <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px; margin-bottom: 10px;">
+        <div class="form-group">
+          <label>Proyecto</label>
+          <select id="capture-project"><option value="">(Sin Proyecto)</option></select>
+        </div>
+        <div class="form-group">
+          <label>Situación / Contexto</label>
+          <input type="text" id="capture-sit" placeholder="Ej: @Despacho" autocomplete="off" oninput="handleSitInput('capture')" onfocus="handleSitInput('capture')">
+          <div class="autocomplete-dropdown" id="capture-sit-dropdown"></div>
+        </div>
+      </div>
+      <div class="form-group" style="margin-bottom: 10px;">
+        <label>Persona (Delegada o Para hablar)</label>
+        <input type="text" id="capture-person" placeholder="Ej: Francesco Russo" autocomplete="off" oninput="handlePersonInput('capture')" onfocus="handlePersonInput('capture')">
+        <div class="autocomplete-dropdown" id="capture-person-dropdown"></div>
+      </div>
+      <div class="form-group" style="margin-bottom: 14px;">
+        <label>Notas / Descripción</label>
+        <textarea id="capture-desc" rows="2" placeholder="Detalles opcionales..."></textarea>
+      </div>
+      <div style="display:flex; justify-content: flex-end; gap:8px;">
+        <button class="btn btn-secondary" onclick="closeCaptureModal()">Cancelar</button>
+        <button class="btn btn-primary" onclick="handleSaveCapture()">Guardar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Editar Tarea -->
+  <div class="modal-overlay" id="edit-modal">
+    <div class="modal">
+      <h3 style="margin-bottom: 14px;">Detalles de la Acción</h3>
+      <input type="hidden" id="edit-id">
+      <div class="form-group" style="margin-bottom: 10px;">
+        <label>Acción</label>
+        <input type="text" id="edit-title">
+      </div>
+      <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px; margin-bottom: 10px;">
+        <div class="form-group">
+          <label>Estado</label>
+          <select id="edit-status">
+            <option value="Inbox">Inbox</option>
+            <option value="Next Action">Next Action</option>
+            <option value="Delegated">Delegated</option>
+            <option value="Reevaluate">Reevaluate</option>
+            <option value="Completed">Completed</option>
+            <option value="Eliminated">Eliminated</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Fecha Límite</label>
+          <input type="date" id="edit-due">
+        </div>
+      </div>
+      <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px; margin-bottom: 10px;">
+        <div class="form-group">
+          <label>Hora Inicio</label>
+          <input type="time" id="edit-start">
+        </div>
+        <div class="form-group">
+          <label>Hora Fin</label>
+          <input type="time" id="edit-end">
+        </div>
+      </div>
+      <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px; margin-bottom: 10px;">
+        <div class="form-group">
+          <label>Proyecto</label>
+          <select id="edit-project"><option value="">(Sin Proyecto)</option></select>
+        </div>
+        <div class="form-group">
+          <label>Situación / Contexto</label>
+          <input type="text" id="edit-sit" placeholder="Ej: @Despacho" autocomplete="off" oninput="handleSitInput('edit')" onfocus="handleSitInput('edit')">
+          <div class="autocomplete-dropdown" id="edit-sit-dropdown"></div>
+        </div>
+      </div>
+      <div class="form-group" style="margin-bottom: 10px;">
+        <label>Persona (Delegada o Para hablar)</label>
+        <input type="text" id="edit-person" placeholder="Ej: Francesco Russo" autocomplete="off" oninput="handlePersonInput('edit')" onfocus="handlePersonInput('edit')">
+        <div class="autocomplete-dropdown" id="edit-person-dropdown"></div>
+      </div>
+      <div class="form-group" style="margin-bottom: 14px;">
+        <label>Descripción / Notas</label>
+        <textarea id="edit-desc" rows="3"></textarea>
+      </div>
+      <div style="display:flex; justify-content: space-between;">
+        <button class="btn btn-secondary" style="color:var(--danger)" onclick="deleteCurrentTask()">Eliminar</button>
+        <div style="display:flex; gap:8px;">
+          <button class="btn btn-secondary" onclick="closeEditModal()">Cancelar</button>
+          <button class="btn btn-primary" onclick="saveTaskEdits()">Guardar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Nuevo Proyecto -->
+  <div class="modal-overlay" id="project-modal">
+    <div class="modal">
+      <h3 style="margin-bottom: 14px;">Nuevo Proyecto</h3>
+      <div class="form-group" style="margin-bottom: 10px;">
+        <label>Nombre del Proyecto</label>
+        <input type="text" id="new-proj-name" placeholder="Ej: Redactar Capítulo IV">
+      </div>
+      <div class="form-group" style="margin-bottom: 14px;">
+        <label>Área de Responsabilidad</label>
+        <select id="new-proj-area"></select>
+      </div>
+      <div style="display:flex; justify-content: flex-end; gap:8px;">
+        <button class="btn btn-secondary" onclick="closeProjectModal()">Cancelar</button>
+        <button class="btn btn-primary" onclick="saveNewProject()">Crear Proyecto</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Nueva Área -->
+  <div class="modal-overlay" id="area-modal">
+    <div class="modal">
+      <h3 style="margin-bottom: 14px;">Nueva Área de Responsabilidad</h3>
+      <div class="form-group" style="margin-bottom: 14px;">
+        <label>Nombre del Área</label>
+        <input type="text" id="new-area-name" placeholder="Ej: DOCENCIA">
+      </div>
+      <div style="display:flex; justify-content: flex-end; gap:8px;">
+        <button class="btn btn-secondary" onclick="closeAreaModal()">Cancelar</button>
+        <button class="btn btn-primary" onclick="saveNewArea()">Crear Área</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Ajustes Generales -->
+  <div class="modal-overlay" id="settings-modal">
+    <div class="modal">
+      <h3 style="margin-bottom: 16px;">Configuración</h3>
+
+      <!-- Grupo 1: GitHub -->
+      <div class="settings-group">
+        <div class="settings-group-title">1. Sincronización GitHub</div>
+        <div class="form-group" style="margin-bottom: 8px;">
+          <label>Usuario de GitHub</label>
+          <input type="text" id="gh-owner" placeholder="Tu usuario">
+        </div>
+        <div class="form-group" style="margin-bottom: 8px;">
+          <label>Repositorio</label>
+          <input type="text" id="gh-repo" placeholder="mi-gtd">
+        </div>
+        <div class="form-group">
+          <label>Personal Access Token (permiso 'repo')</label>
+          <input type="password" id="gh-token" placeholder="ghp_xxxx">
+        </div>
+      </div>
+
+      <!-- Grupo 2: Gestión de Situaciones -->
+      <div class="settings-group">
+        <div class="settings-group-title">2. Gestión de Situaciones</div>
+        <div id="situations-manager-list" style="display:flex; flex-direction:column; gap:6px; max-height:160px; overflow-y:auto; padding-right:2px;"></div>
+      </div>
+
+      <!-- Grupo 3: Calendario -->
+      <div class="settings-group">
+        <div class="settings-group-title">3. Google Calendar (.ics)</div>
+        <p style="font-size:0.8rem; color:var(--text-muted); margin-bottom:8px;">
+          URL de suscripción para añadir en Google Calendar (Otros calendarios → Desde URL):
+        </p>
+        <div style="display:flex; gap:6px; margin-bottom:10px;">
+          <input type="text" id="cal-url-display" readonly style="font-size:0.8rem; background:var(--tag-bg); color:var(--text-muted);">
+          <button class="btn btn-secondary btn-sm" onclick="copyCalendarURL()">Copiar</button>
+        </div>
+        <button class="btn btn-secondary btn-sm" onclick="downloadICS()">Descargar archivo .ics manual</button>
+      </div>
+
+      <!-- Grupo 4: Backups -->
+      <div class="settings-group">
+        <div class="settings-group-title">4. Copias de Seguridad</div>
+        <div style="display:flex; gap:8px;">
+          <button class="btn btn-secondary btn-sm" onclick="exportJSON()">Exportar Backup JSON</button>
+          <button class="btn btn-secondary btn-sm" onclick="triggerImport()">Importar Backup JSON</button>
+          <input type="file" id="import-file" style="display:none;" onchange="importJSON(event)">
+        </div>
+      </div>
+
+      <div style="display:flex; justify-content: flex-end; gap:8px; margin-top: 14px;">
+        <button class="btn btn-secondary" onclick="closeSettingsModal()">Cerrar</button>
+        <button class="btn btn-primary" onclick="saveSettings()">Guardar Ajustes</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let db = {
+      areas: ["TESIS", "PUSC", "Cavabianca", "MONTALBÁN", "RETAMAR", "FORMACIÓN", "PERSONAL"],
+      projects: [],
+      tasks: []
+    };
+    let currentTab = 'mem';
+    let filterSituation = '';
+    let selectedPerson = null; // Para la vista 1 a 1 en Personas
+    let ghShaData = null;
+    let ghShaIcs = null;
+
+    // --- CODIFICACIÓN UTF-8 ---
+    function utf8ToBase64(str) {
+      const bytes = new TextEncoder().encode(str);
+      let bin = '';
+      for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+      return btoa(bin);
+    }
+
+    function base64ToUtf8(b64) {
+      const bin = atob(b64.replace(/\s/g, ''));
+      const bytes = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+      return new TextDecoder().decode(bytes);
+    }
+
+    // --- CONFIGURACIÓN Y SINCRONIZACIÓN ---
+    function getGHConfig() {
+      return {
+        owner: localStorage.getItem('gtd_owner') || '',
+        repo: localStorage.getItem('gtd_repo') || '',
+        token: localStorage.getItem('gtd_token') || ''
+      };
+    }
+
+    async function loadData() {
+      const local = localStorage.getItem('gtd_db');
+      if (local) {
+        try { db = JSON.parse(local); } catch(e){}
+      }
+      render();
+
+      const cfg = getGHConfig();
+      if (!cfg.token || !cfg.owner || !cfg.repo) {
+        updateSyncBadge('Sin Configurar', 'error');
+        return;
+      }
+
+      updateSyncBadge('Sincronizando...', 'syncing');
+      try {
+        const res = await fetch(`https://api.github.com/repos/${cfg.owner}/${cfg.repo}/contents/data.json`, {
+          headers: { 'Authorization': `token ${cfg.token}`, 'Accept': 'application/vnd.github.v3+json' }
+        });
+
+        if (res.status === 200) {
+          const json = await res.json();
+          ghShaData = json.sha;
+          db = JSON.parse(base64ToUtf8(json.content));
+          localStorage.setItem('gtd_db', JSON.stringify(db));
+          updateSyncBadge('Sincronizado', 'synced');
+          render();
+        } else if (res.status === 404) {
+          await persistData();
+        } else {
+          updateSyncBadge('Error Sync', 'error');
+        }
+
+        const resIcs = await fetch(`https://api.github.com/repos/${cfg.owner}/${cfg.repo}/contents/calendar.ics`, {
+          headers: { 'Authorization': `token ${cfg.token}`, 'Accept': 'application/vnd.github.v3+json' }
+        });
+        if (resIcs.status === 200) {
+          const icsJson = await resIcs.json();
+          ghShaIcs = icsJson.sha;
+        }
+      } catch (err) {
+        updateSyncBadge('Sin Conexión', 'error');
+      }
+    }
+
+    async function persistData() {
+      localStorage.setItem('gtd_db', JSON.stringify(db));
+      render();
+
+      const cfg = getGHConfig();
+      if (!cfg.token || !cfg.owner || !cfg.repo) return;
+
+      updateSyncBadge('Guardando...', 'syncing');
+      try {
+        const jsonContent = utf8ToBase64(JSON.stringify(db, null, 2));
+        const resData = await fetch(`https://api.github.com/repos/${cfg.owner}/${cfg.repo}/contents/data.json`, {
+          method: 'PUT',
+          headers: { 'Authorization': `token ${cfg.token}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message: "Update GTD data", content: jsonContent, sha: ghShaData || undefined })
+        });
+        if (resData.ok) {
+          const d = await resData.json();
+          ghShaData = d.content.sha;
+        }
+
+        const icsContent = utf8ToBase64(generateICS());
+        const resIcs = await fetch(`https://api.github.com/repos/${cfg.owner}/${cfg.repo}/contents/calendar.ics`, {
+          method: 'PUT',
+          headers: { 'Authorization': `token ${cfg.token}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message: "Update GTD Calendar feed", content: icsContent, sha: ghShaIcs || undefined })
+        });
+        if (resIcs.ok) {
+          const i = await resIcs.json();
+          ghShaIcs = i.content.sha;
+        }
+
+        updateSyncBadge('Sincronizado', 'synced');
+      } catch (e) {
+        updateSyncBadge('Sin Conexión', 'error');
+      }
+    }
+
+    function updateSyncBadge(text, cls) {
+      const el = document.getElementById('sync-status');
+      el.textContent = text;
+      el.className = 'status-badge ' + cls;
+    }
+
+    // --- GENERADOR iCAL / .ICS ---
+    function computeEndTime(start) {
+      if (!start) return '';
+      const [h, m] = start.split(':').map(Number);
+      const endH = (h + 1) % 24;
+      return `${String(endH).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+    }
+
+    function generateICS() {
+      const activeTasksWithDate = db.tasks.filter(t => t.status !== 'Completed' && t.status !== 'Eliminated' && t.dueDate);
+      const nowStr = new Date().toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
+
+      let lines = [
+        'BEGIN:VCALENDAR',
+        'VERSION:2.0',
+        'PRODID:-//Mi GTD//ES',
+        'CALSCALE:GREGORIAN',
+        'METHOD:PUBLISH',
+        'X-WR-CALNAME:GTD Tareas'
+      ];
+
+      activeTasksWithDate.forEach(t => {
+        const dateClean = t.dueDate.replace(/-/g, '');
+        lines.push('BEGIN:VEVENT');
+        lines.push(`UID:${t.id}@migtd`);
+        lines.push(`DTSTAMP:${nowStr}`);
+        lines.push(`SUMMARY:${escapeICS(t.name)}`);
+        
+        let descParts = [];
+        if (t.person) descParts.push(`Persona: ${t.person}`);
+        if (t.situation) descParts.push(`Situación: ${t.situation}`);
+        if (t.description) descParts.push(t.description);
+        if (descParts.length > 0) lines.push(`DESCRIPTION:${escapeICS(descParts.join(' | '))}`);
+
+        if (t.startTime) {
+          const startClean = t.startTime.replace(/:/g, '') + '00';
+          const endVal = t.endTime || computeEndTime(t.startTime);
+          const endClean = endVal.replace(/:/g, '') + '00';
+          lines.push(`DTSTART:${dateClean}T${startClean}`);
+          lines.push(`DTEND:${dateClean}T${endClean}`);
+        } else {
+          lines.push(`DTSTART;VALUE=DATE:${dateClean}`);
+          const nextDay = new Date(t.dueDate);
+          nextDay.setDate(nextDay.getDate() + 1);
+          const nextDayClean = nextDay.toISOString().split('T')[0].replace(/-/g, '');
+          lines.push(`DTEND;VALUE=DATE:${nextDayClean}`);
+        }
+        lines.push('END:VEVENT');
+      });
+
+      lines.push('END:VCALENDAR');
+      return lines.join('\r\n');
+    }
+
+    function escapeICS(str) {
+      if (!str) return '';
+      return str.replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,').replace(/\n/g, '\\n');
+    }
+
+    // --- ENLACE DIRECTO GOOGLE CALENDAR ---
+    function openGoogleCalendarTemplate(id) {
+      const t = db.tasks.find(x => x.id === id);
+      if (!t || !t.dueDate) return;
+
+      const dateClean = t.dueDate.replace(/-/g, '');
+      let datesParam = '';
+      if (t.startTime) {
+        const startClean = t.startTime.replace(/:/g, '') + '00';
+        const endVal = t.endTime || computeEndTime(t.startTime);
+        const endClean = endVal.replace(/:/g, '') + '00';
+        datesParam = `${dateClean}T${startClean}/${dateClean}T${endClean}`;
+      } else {
+        const nextDay = new Date(t.dueDate);
+        nextDay.setDate(nextDay.getDate() + 1);
+        const nextClean = nextDay.toISOString().split('T')[0].replace(/-/g, '');
+        datesParam = `${dateClean}/${nextClean}`;
+      }
+
+      let desc = t.description || '';
+      if (t.person) desc = `[Persona: ${t.person}] ` + desc;
+
+      const url = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(t.name)}&dates=${datesParam}&details=${encodeURIComponent(desc)}`;
+      window.open(url, '_blank');
+    }
+
+    // --- AUTOCOMPLETADO DE SITUACIÓN ---
+    function getAllSituations() {
+      const set = new Set();
+      db.tasks.forEach(t => {
+        if (t.situation && t.situation.trim()) set.add(t.situation.trim());
+      });
+      return Array.from(set).sort();
+    }
+
+    function handleSitInput(target) {
+      const input = document.getElementById(target + '-sit');
+      const dropdown = document.getElementById(target + '-sit-dropdown');
+      const val = input.value.trim().toLowerCase();
+      const allSits = getAllSituations();
+
+      const filtered = allSits.filter(s => s.toLowerCase().includes(val));
+      const exactMatch = allSits.find(s => s.toLowerCase() === val);
+
+      let html = '';
+      if (filtered.length > 0) {
+        html += filtered.map(s => `
+          <div class="autocomplete-item" onmousedown="selectSituation('${target}', '${escapeHTML(s)}')">
+            <span>🏷️ ${escapeHTML(s)}</span>
+          </div>
+        `).join('');
+      }
+
+      if (val && !exactMatch) {
+        html += `
+          <div class="autocomplete-item create-new" onmousedown="selectSituation('${target}', '${escapeHTML(input.value.trim())}')">
+            <span>+ Crear etiqueta: "<strong>${escapeHTML(input.value.trim())}</strong>"</span>
+          </div>
+        `;
+      }
+
+      if (html) {
+        dropdown.innerHTML = html;
+        dropdown.classList.add('open');
+      } else {
+        dropdown.classList.remove('open');
+      }
+    }
+
+    function selectSituation(target, value) {
+      const input = document.getElementById(target + '-sit');
+      input.value = value;
+      document.getElementById(target + '-sit-dropdown').classList.remove('open');
+    }
+
+    // --- AUTOCOMPLETADO DE PERSONA ---
+    function getActivePersons() {
+      // Personas que tienen al menos una tarea pendiente (desaparecen automáticamente al terminar)
+      const set = new Set();
+      db.tasks.forEach(t => {
+        if (t.status !== 'Completed' && t.status !== 'Eliminated' && t.person && t.person.trim()) {
+          set.add(t.person.trim());
+        }
+      });
+      return Array.from(set).sort((a,b) => a.localeCompare(b));
+    }
+
+    function getAllPersonsHistory() {
+      // Todas las personas que existen en el histórico de tareas
+      const set = new Set();
+      db.tasks.forEach(t => {
+        if (t.person && t.person.trim()) set.add(t.person.trim());
+      });
+      return Array.from(set).sort((a,b) => a.localeCompare(b));
+    }
+
+    function handlePersonInput(target) {
+      const input = document.getElementById(target + '-person');
+      const dropdown = document.getElementById(target + '-person-dropdown');
+      const val = input.value.trim().toLowerCase();
+      const allPersons = getAllPersonsHistory();
+
+      const filtered = allPersons.filter(p => p.toLowerCase().includes(val));
+      const exactMatch = allPersons.find(p => p.toLowerCase() === val);
+
+      let html = '';
+      if (filtered.length > 0) {
+        html += filtered.map(p => `
+          <div class="autocomplete-item" onmousedown="selectPerson('${target}', '${escapeHTML(p)}')">
+            <span>👤 ${escapeHTML(p)}</span>
+          </div>
+        `).join('');
+      }
+
+      if (val && !exactMatch) {
+        html += `
+          <div class="autocomplete-item create-new" onmousedown="selectPerson('${target}', '${escapeHTML(input.value.trim())}')">
+            <span>+ Crear persona: "<strong>${escapeHTML(input.value.trim())}</strong>"</span>
+          </div>
+        `;
+      }
+
+      if (html) {
+        dropdown.innerHTML = html;
+        dropdown.classList.add('open');
+      } else {
+        dropdown.classList.remove('open');
+      }
+    }
+
+    function selectPerson(target, value) {
+      const input = document.getElementById(target + '-person');
+      input.value = value;
+      document.getElementById(target + '-person-dropdown').classList.remove('open');
+    }
+
+    document.addEventListener('click', (e) => {
+      if (!e.target.closest('.form-group')) {
+        document.querySelectorAll('.autocomplete-dropdown').forEach(d => d.classList.remove('open'));
+      }
+    });
+
+    // --- GESTIÓN DE SITUACIONES EN AJUSTES ---
+    function renderSettingsSituations() {
+      const list = document.getElementById('situations-manager-list');
+      if (!list) return;
+      const sits = getAllSituations();
+      if (sits.length === 0) {
+        list.innerHTML = '<p style="font-size:0.8rem; color:var(--text-muted);">No hay situaciones en uso.</p>';
+        return;
+      }
+      list.innerHTML = sits.map(s => `
+        <div style="display:flex; justify-content:space-between; align-items:center; background:var(--tag-bg); padding:6px 10px; border-radius:6px; font-size:0.85rem;">
+          <span>🏷️ <strong>${escapeHTML(s)}</strong></span>
+          <div style="display:flex; gap:6px;">
+            <button class="btn btn-secondary btn-sm" onclick="renameSituation(decodeURIComponent('${encodeURIComponent(s)}'))">Renombrar</button>
+            <button class="btn btn-secondary btn-sm" style="color:var(--danger)" onclick="deleteSituation(decodeURIComponent('${encodeURIComponent(s)}'))">Eliminar</button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function renameSituation(oldName) {
+      const newName = prompt(`Renombrar la situación "${oldName}" a:`, oldName);
+      if (!newName || newName.trim() === '' || newName.trim() === oldName) return;
+      const finalName = newName.trim();
+      db.tasks.forEach(t => {
+        if (t.situation === oldName) t.situation = finalName;
+      });
+      persistData();
+      renderSettingsSituations();
+    }
+
+    function deleteSituation(name) {
+      if (!confirm(`¿Eliminar la situación "${name}" de todas las tareas?`)) return;
+      db.tasks.forEach(t => {
+        if (t.situation === name) t.situation = null;
+      });
+      persistData();
+      renderSettingsSituations();
+    }
+
+    // --- GESTIÓN DE PERSONAS (RENOMBRAR / FUSIONAR) ---
+    function promptRenamePerson(oldName) {
+      const newName = prompt(`Renombrar o fusionar a "${oldName}" con:`, oldName);
+      if (!newName || newName.trim() === '' || newName.trim() === oldName) return;
+      const finalName = newName.trim();
+      db.tasks.forEach(t => {
+        if (t.person === oldName) t.person = finalName;
+      });
+      if (selectedPerson === oldName) selectedPerson = finalName;
+      persistData();
+    }
+
+    function promptClearPerson(personName) {
+      if (!confirm(`¿Desvincular a "${personName}" de todas sus tareas?`)) return;
+      db.tasks.forEach(t => {
+        if (t.person === personName) t.person = null;
+      });
+      selectedPerson = null;
+      persistData();
+    }
+
+    function goToPerson(personName) {
+      selectedPerson = personName;
+      switchTab('people');
+    }
+
+    // --- CAPTURA RÁPIDA (MODAL) ---
+    function openCaptureModal() {
+      document.getElementById('capture-title').value = '';
+      document.getElementById('capture-due').value = '';
+      document.getElementById('capture-start').value = '';
+      document.getElementById('capture-end').value = '';
+      document.getElementById('capture-sit').value = '';
+      document.getElementById('capture-person').value = (currentTab === 'people' && selectedPerson) ? selectedPerson : '';
+      document.getElementById('capture-desc').value = '';
+      document.getElementById('capture-status').value = 'Inbox';
+      populateProjectSelects();
+      document.getElementById('capture-modal').classList.add('open');
+      setTimeout(() => document.getElementById('capture-title').focus(), 100);
+    }
+    function closeCaptureModal() {
+      document.getElementById('capture-modal').classList.remove('open');
+      document.querySelectorAll('.autocomplete-dropdown').forEach(d => d.classList.remove('open'));
+    }
+
+    function handleSaveCapture() {
+      const title = document.getElementById('capture-title').value.trim();
+      if (!title) return;
+
+      const due = document.getElementById('capture-due').value || null;
+      const start = document.getElementById('capture-start').value || null;
+      let end = document.getElementById('capture-end').value || null;
+      if (start && !end) end = computeEndTime(start);
+
+      const proj = document.getElementById('capture-project').value || null;
+      const sit = document.getElementById('capture-sit').value.trim() || null;
+      const person = document.getElementById('capture-person').value.trim() || null;
+      const status = document.getElementById('capture-status').value || 'Inbox';
+      const desc = document.getElementById('capture-desc').value.trim() || null;
+
+      db.tasks.unshift({
+        id: 't_' + Date.now(),
+        name: title,
+        status: status,
+        dueDate: due,
+        startTime: start,
+        endTime: end,
+        projectId: proj,
+        situation: sit,
+        person: person,
+        description: desc
+      });
+
+      closeCaptureModal();
+      persistData();
+    }
+
+    function setTaskStatus(id, newStatus) {
+      const t = db.tasks.find(x => x.id === id);
+      if (t) {
+        t.status = newStatus;
+        persistData();
+      }
+    }
+
+    // --- RENDERIZADO PRINCIPAL ---
+    function switchTab(tab) {
+      currentTab = tab;
+      document.querySelectorAll('.nav-btn').forEach((btn, idx) => {
+        btn.classList.toggle('active', ['mem', 'inbox', 'next', 'projects', 'people', 'review'][idx] === tab);
+      });
+      render();
+    }
+
+    function render() {
+      populateProjectSelects();
+      const container = document.getElementById('app-content');
+      const today = new Date().toISOString().split('T')[0];
+
+      if (currentTab === 'mem') renderMEM(container, today);
+      else if (currentTab === 'inbox') renderInbox(container, today);
+      else if (currentTab === 'next') renderNextActions(container, today);
+      else if (currentTab === 'projects') renderProjects(container);
+      else if (currentTab === 'people') renderPeople(container, today);
+      else if (currentTab === 'review') renderReview(container, today);
+    }
+
+    function renderMEM(container, today) {
+      const nextWeek = new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0];
+
+      const overdue = db.tasks.filter(t => t.status !== 'Completed' && t.status !== 'Eliminated' && t.dueDate && t.dueDate < today);
+      const dueToday = db.tasks.filter(t => t.status !== 'Completed' && t.status !== 'Eliminated' && t.dueDate === today);
+      const nextNoDate = db.tasks.filter(t => t.status === 'Next Action' && !t.dueDate);
+      const upcoming = db.tasks.filter(t => t.status !== 'Completed' && t.status !== 'Eliminated' && t.dueDate && t.dueDate > today && t.dueDate <= nextWeek);
+
+      let nextFiltered = nextNoDate;
+      if (filterSituation) {
+        nextFiltered = nextFiltered.filter(t => t.situation === filterSituation);
+      }
+
+      const allSituations = getAllSituations();
+
+      let html = `
+        <div class="filter-bar">
+          <span class="filter-chip ${filterSituation === '' ? 'active' : ''}" onclick="setSituationFilter('')">Todas</span>
+          ${allSituations.map(s => `<span class="filter-chip ${filterSituation === s ? 'active' : ''}" onclick="setSituationFilter('${escapeHTML(s)}')">${escapeHTML(s)}</span>`).join('')}
+        </div>
+      `;
+
+      if (overdue.length > 0) {
+        html += `<div class="section-title" style="color:var(--danger)">⚠️ Vencidas (${overdue.length})</div>`;
+        html += overdue.map(t => renderTaskCard(t, today)).join('');
+      }
+
+      html += `<div class="section-title">Para Hoy (${dueToday.length})</div>`;
+      html += dueToday.length === 0 ? `<p style="color:var(--text-muted); font-size:0.85rem;">Sin compromisos para hoy.</p>` : dueToday.map(t => renderTaskCard(t, today)).join('');
+
+      html += `<div class="section-title">Siguientes Acciones (${nextFiltered.length})</div>`;
+      html += nextFiltered.length === 0 ? `<p style="color:var(--text-muted); font-size:0.85rem;">Sin acciones en este contexto.</p>` : nextFiltered.map(t => renderTaskCard(t, today)).join('');
+
+      html += `<div class="section-title">Upcoming (Próximos 7 días) (${upcoming.length})</div>`;
+      html += upcoming.length === 0 ? `<p style="color:var(--text-muted); font-size:0.85rem;">Sin compromisos cercanos.</p>` : upcoming.sort((a,b) => a.dueDate.localeCompare(b.dueDate)).map(t => renderTaskCard(t, today)).join('');
+
+      container.innerHTML = html;
+    }
+
+    function setSituationFilter(s) {
+      filterSituation = s;
+      render();
+    }
+
+    function renderInbox(container, today) {
+      const inboxTasks = db.tasks.filter(t => t.status === 'Inbox');
+      let html = `<div class="section-title">Bandeja de Entrada (${inboxTasks.length})</div>`;
+      html += inboxTasks.length === 0 ? `<p style="color:var(--text-muted); font-size:0.9rem;">Bandeja limpia.</p>` : inboxTasks.map(t => renderTaskCard(t, today)).join('');
+      container.innerHTML = html;
+    }
+
+    function renderNextActions(container, today) {
+      const nextTasks = db.tasks.filter(t => t.status === 'Next Action');
+      let html = `<div class="section-title">Todas las Next Actions (${nextTasks.length})</div>`;
+      html += nextTasks.length === 0 ? `<p style="color:var(--text-muted); font-size:0.9rem;">No hay acciones activas.</p>` : nextTasks.map(t => renderTaskCard(t, today)).join('');
+      container.innerHTML = html;
+    }
+
+    function renderProjects(container) {
+      let html = `
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+          <h2 style="font-size:1.1rem; font-weight:700;">Áreas y Proyectos</h2>
+          <div style="display:flex; gap:6px;">
+            <button class="btn btn-secondary btn-sm" onclick="openAreaModal()">+ Área</button>
+            <button class="btn btn-primary btn-sm" onclick="openProjectModal()">+ Proyecto</button>
+          </div>
+        </div>
+      `;
+
+      db.areas.forEach(area => {
+        const areaProjects = db.projects.filter(p => p.area === area);
+        html += `
+          <div style="margin-top:20px;">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <span class="section-title" style="margin:0;">${escapeHTML(area)}</span>
+              <button class="btn btn-secondary btn-sm" style="font-size:0.7rem; padding:2px 8px; color:var(--danger)" onclick="deleteArea('${escapeHTML(area)}')">Eliminar Área</button>
+            </div>
+        `;
+
+        if (areaProjects.length === 0) {
+          html += `<p style="font-size:0.8rem; color:var(--text-muted); margin: 6px 0;">Sin proyectos asociados.</p>`;
+        } else {
+          areaProjects.forEach(p => {
+            const pendingTasks = db.tasks.filter(t => t.projectId === p.id && t.status !== 'Completed' && t.status !== 'Eliminated').length;
+            html += `
+              <div class="task-card" style="margin-top:6px;">
+                <div class="task-row">
+                  <div>
+                    <strong>📁 ${escapeHTML(p.name)}</strong>
+                    <span style="font-size:0.75rem; color:var(--text-muted); margin-left:6px;">(${pendingTasks} acciones pendientes)</span>
+                  </div>
+                  <button class="btn btn-secondary btn-sm" style="color:var(--danger);" onclick="deleteProject('${p.id}')">Eliminar</button>
+                </div>
+              </div>
+            `;
+          });
+        }
+        html += `</div>`;
+      });
+
+      container.innerHTML = html;
+    }
+
+    // --- VISTA PERSONAS / AGENDA 1 A 1 ---
+    function renderPeople(container, today) {
+      const activePersons = getActivePersons();
+
+      // Si la persona seleccionada ya no tiene tareas activas, resetear selección
+      if (selectedPerson && !activePersons.includes(selectedPerson)) {
+        selectedPerson = null;
+      }
+
+      // Si hay una persona seleccionada, mostrar su Agenda 1 a 1 detallada
+      if (selectedPerson) {
+        const personTasks = db.tasks.filter(t => t.person === selectedPerson && t.status !== 'Completed' && t.status !== 'Eliminated');
+        const toDiscuss = personTasks.filter(t => t.status === 'Next Action');
+        const waitingFor = personTasks.filter(t => t.status === 'Delegated');
+        const otherTasks = personTasks.filter(t => t.status !== 'Next Action' && t.status !== 'Delegated');
+
+        let html = `
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+            <button class="btn btn-secondary btn-sm" onclick="selectedPerson = null; render();">← Volver a lista</button>
+            <div style="display:flex; gap:6px;">
+              <button class="btn btn-secondary btn-sm" onclick="promptRenamePerson(decodeURIComponent('${encodeURIComponent(selectedPerson)}'))">Renombrar / Unir</button>
+              <button class="btn btn-secondary btn-sm" style="color:var(--danger);" onclick="promptClearPerson(decodeURIComponent('${encodeURIComponent(selectedPerson)}'))">Desvincular</button>
+            </div>
+          </div>
+          <h2 style="font-size:1.2rem; font-weight:700; margin-bottom:6px;">👤 ${escapeHTML(selectedPerson)}</h2>
+          <p style="font-size:0.8rem; color:var(--text-muted); margin-bottom:16px;">Agenda 1 a 1 (${personTasks.length} pendientes)</p>
+        `;
+
+        html += `<div class="section-title" style="color:var(--primary);">🎯 Por Tratar con él/ella (${toDiscuss.length})</div>`;
+        html += toDiscuss.length === 0 ? `<p style="color:var(--text-muted); font-size:0.85rem;">Sin puntos de agenda pendientes.</p>` : toDiscuss.map(t => renderTaskCard(t, today)).join('');
+
+        html += `<div class="section-title" style="color:var(--warning-text);">⏳ Esperando de él/ella / Delegadas (${waitingFor.length})</div>`;
+        html += waitingFor.length === 0 ? `<p style="color:var(--text-muted); font-size:0.85rem;">No tienes nada delegado a esta persona.</p>` : waitingFor.map(t => renderTaskCard(t, today)).join('');
+
+        if (otherTasks.length > 0) {
+          html += `<div class="section-title">Otras / Inbox (${otherTasks.length})</div>`;
+          html += otherTasks.map(t => renderTaskCard(t, today)).join('');
+        }
+
+        container.innerHTML = html;
+        return;
+      }
+
+      // Si no hay nadie seleccionado, mostrar el directorio de personas con tareas activas
+      let html = `
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+          <h2 style="font-size:1.1rem; font-weight:700;">Agendas 1 a 1 (Personas)</h2>
+        </div>
+        <p style="font-size:0.8rem; color:var(--text-muted); margin-bottom:14px;">
+          Personas con tareas pendientes o delegadas. Desaparecen automáticamente cuando no queda nada pendiente.
+        </p>
+      `;
+
+      if (activePersons.length === 0) {
+        html += `<p style="color:var(--text-muted); font-size:0.9rem; margin-top:20px;">No hay personas con compromisos activos actualmente.</p>`;
+      } else {
+        html += activePersons.map(person => {
+          const tasks = db.tasks.filter(t => t.person === person && t.status !== 'Completed' && t.status !== 'Eliminated');
+          const discussCount = tasks.filter(t => t.status === 'Next Action').length;
+          const waitCount = tasks.filter(t => t.status === 'Delegated').length;
+
+          return `
+            <div class="task-card" style="cursor:pointer;" onclick="goToPerson(decodeURIComponent('${encodeURIComponent(person)}'))">
+              <div class="task-row">
+                <div>
+                  <strong style="font-size:1rem;">👤 ${escapeHTML(person)}</strong>
+                  <div style="font-size:0.75rem; color:var(--text-muted); margin-top:4px;">
+                    ${discussCount > 0 ? `<span style="color:var(--primary); font-weight:600;">${discussCount} por tratar</span>` : ''}
+                    ${discussCount > 0 && waitCount > 0 ? ' • ' : ''}
+                    ${waitCount > 0 ? `<span style="color:var(--warning-text); font-weight:600;">${waitCount} esperando</span>` : ''}
+                    ${discussCount === 0 && waitCount === 0 ? `<span>${tasks.length} tareas</span>` : ''}
+                  </div>
+                </div>
+                <button class="btn btn-secondary btn-sm" onclick="event.stopPropagation(); promptRenamePerson(decodeURIComponent('${encodeURIComponent(person)}'))">Renombrar / Unir</button>
+              </div>
+            </div>
+          `;
+        }).join('');
+      }
+
+      container.innerHTML = html;
+    }
+
+    function renderReview(container, today) {
+      const delegated = db.tasks.filter(t => t.status === 'Delegated');
+      const reevaluate = db.tasks.filter(t => t.status === 'Reevaluate');
+      const completed = db.tasks.filter(t => t.status === 'Completed').slice(0, 15);
+
+      let html = `<h2 style="font-size:1.1rem; font-weight:700; margin-bottom:12px;">Revisión GTD</h2>`;
+      html += `<div class="section-title">En Espera / Delegadas (${delegated.length})</div>`;
+      html += delegated.length === 0 ? `<p style="color:var(--text-muted); font-size:0.85rem;">Sin elementos delegados.</p>` : delegated.map(t => renderTaskCard(t, today)).join('');
+
+      html += `<div class="section-title">Incubadora / Reevaluar (${reevaluate.length})</div>`;
+      html += reevaluate.length === 0 ? `<p style="color:var(--text-muted); font-size:0.85rem;">Nada que reevaluar.</p>` : reevaluate.map(t => renderTaskCard(t, today)).join('');
+
+      html += `<div class="section-title">Últimas Completadas (${completed.length})</div>`;
+      html += completed.map(t => renderTaskCard(t, today)).join('');
+
+      container.innerHTML = html;
+    }
+
+    function renderTaskCard(t, today) {
+      const proj = db.projects.find(p => p.id === t.projectId);
+      const isOverdue = t.dueDate && t.dueDate < today && t.status !== 'Completed';
+      const timeStr = t.startTime ? ` | ⏰ ${t.startTime}${t.endTime ? '-' + t.endTime : ''}` : '';
+
+      return `
+        <div class="task-card">
+          <div class="task-row">
+            <span class="task-title" onclick="openEditModal('${t.id}')">${escapeHTML(t.name)}</span>
+            ${t.status !== 'Completed' ? `<button class="btn btn-secondary btn-sm" title="Completar" onclick="setTaskStatus('${t.id}', 'Completed')">✓</button>` : ''}
+          </div>
+          <div class="task-meta">
+            ${t.status !== 'Next Action' && t.status !== 'Inbox' ? `<span class="tag">${t.status}</span>` : ''}
+            ${t.dueDate ? `<span class="tag tag-due ${isOverdue ? 'overdue' : ''}">📅 ${t.dueDate}${timeStr}</span>` : ''}
+            ${proj ? `<span class="tag tag-project">📁 ${escapeHTML(proj.name)}</span>` : ''}
+            ${t.situation ? `<span class="tag tag-sit">🏷️ ${escapeHTML(t.situation)}</span>` : ''}
+            ${t.person ? `<span class="tag tag-person" onclick="event.stopPropagation(); goToPerson(decodeURIComponent('${encodeURIComponent(t.person)}'))" title="Ver agenda 1 a 1">👤 ${escapeHTML(t.person)}</span>` : ''}
+          </div>
+          ${t.description ? `<p style="font-size:0.8rem; color:var(--text-muted);">${escapeHTML(t.description)}</p>` : ''}
+          <div class="task-actions">
+            ${t.dueDate ? `<button class="btn btn-secondary btn-sm" onclick="openGoogleCalendarTemplate('${t.id}')" title="Añadir a Google Calendar">+ Cal</button>` : ''}
+            ${t.status === 'Inbox' ? `<button class="btn btn-secondary btn-sm" onclick="setTaskStatus('${t.id}', 'Next Action')">Mover a Next Action</button>` : ''}
+            <button class="btn btn-secondary btn-sm" onclick="openEditModal('${t.id}')">Editar</button>
+          </div>
+        </div>
+      `;
+    }
+
+    // --- MODALES AUXILIARES ---
+    function openEditModal(id) {
+      const t = db.tasks.find(x => x.id === id);
+      if (!t) return;
+      document.getElementById('edit-id').value = t.id;
+      document.getElementById('edit-title').value = t.name;
+      document.getElementById('edit-status').value = t.status;
+      document.getElementById('edit-due').value = t.dueDate || '';
+      document.getElementById('edit-start').value = t.startTime || '';
+      document.getElementById('edit-end').value = t.endTime || '';
+      document.getElementById('edit-project').value = t.projectId || '';
+      document.getElementById('edit-sit').value = t.situation || '';
+      document.getElementById('edit-person').value = t.person || '';
+      document.getElementById('edit-desc').value = t.description || '';
+      document.getElementById('edit-modal').classList.add('open');
+    }
+    function closeEditModal() {
+      document.getElementById('edit-modal').classList.remove('open');
+      document.querySelectorAll('.autocomplete-dropdown').forEach(d => d.classList.remove('open'));
+    }
+
+    function saveTaskEdits() {
+      const id = document.getElementById('edit-id').value;
+      const t = db.tasks.find(x => x.id === id);
+      if (t) {
+        t.name = document.getElementById('edit-title').value.trim() || t.name;
+        t.status = document.getElementById('edit-status').value;
+        t.dueDate = document.getElementById('edit-due').value || null;
+        t.startTime = document.getElementById('edit-start').value || null;
+        let end = document.getElementById('edit-end').value || null;
+        if (t.startTime && !end) end = computeEndTime(t.startTime);
+        t.endTime = end;
+        t.projectId = document.getElementById('edit-project').value || null;
+        t.situation = document.getElementById('edit-sit').value.trim() || null;
+        t.person = document.getElementById('edit-person').value.trim() || null;
+        t.description = document.getElementById('edit-desc').value.trim() || null;
+        persistData();
+      }
+      closeEditModal();
+    }
+
+    function deleteCurrentTask() {
+      const id = document.getElementById('edit-id').value;
+      db.tasks = db.tasks.filter(x => x.id !== id);
+      persistData();
+      closeEditModal();
+    }
+
+    function openProjectModal() {
+      const select = document.getElementById('new-proj-area');
+      select.innerHTML = db.areas.map(a => `<option value="${escapeHTML(a)}">${escapeHTML(a)}</option>`).join('');
+      document.getElementById('new-proj-name').value = '';
+      document.getElementById('project-modal').classList.add('open');
+    }
+    function closeProjectModal() { document.getElementById('project-modal').classList.remove('open'); }
+    function saveNewProject() {
+      const name = document.getElementById('new-proj-name').value.trim();
+      const area = document.getElementById('new-proj-area').value;
+      if (!name) return;
+      db.projects.push({ id: 'p_' + Date.now(), name: name, area: area });
+      closeProjectModal();
+      persistData();
+    }
+    function deleteProject(id) {
+      db.projects = db.projects.filter(p => p.id !== id);
+      db.tasks.forEach(t => { if (t.projectId === id) t.projectId = null; });
+      persistData();
+    }
+
+    function openAreaModal() {
+      document.getElementById('new-area-name').value = '';
+      document.getElementById('area-modal').classList.add('open');
+    }
+    function closeAreaModal() { document.getElementById('area-modal').classList.remove('open'); }
+    function saveNewArea() {
+      const name = document.getElementById('new-area-name').value.trim();
+      if (name && !db.areas.includes(name)) {
+        db.areas.push(name);
+        closeAreaModal();
+        persistData();
+      }
+    }
+    function deleteArea(area) {
+      db.areas = db.areas.filter(a => a !== area);
+      persistData();
+    }
+
+    function populateProjectSelects() {
+      const options = `<option value="">(Sin Proyecto)</option>` + db.projects.map(p => `<option value="${p.id}">${escapeHTML(p.name)}</option>`).join('');
+      document.getElementById('capture-project').innerHTML = options;
+      document.getElementById('edit-project').innerHTML = options;
+    }
+
+    // --- MODAL DE AJUSTES ---
+    function openSettingsModal() {
+      const cfg = getGHConfig();
+      document.getElementById('gh-owner').value = cfg.owner;
+      document.getElementById('gh-repo').value = cfg.repo;
+      document.getElementById('gh-token').value = cfg.token;
+
+      const calUrl = cfg.owner && cfg.repo ? `https://${cfg.owner}.github.io/${cfg.repo}/calendar.ics` : 'Configura usuario y repo primero';
+      document.getElementById('cal-url-display').value = calUrl;
+      renderSettingsSituations();
+      document.getElementById('settings-modal').classList.add('open');
+    }
+    function closeSettingsModal() { document.getElementById('settings-modal').classList.remove('open'); }
+
+    function saveSettings() {
+      localStorage.setItem('gtd_owner', document.getElementById('gh-owner').value.trim());
+      localStorage.setItem('gtd_repo', document.getElementById('gh-repo').value.trim());
+      localStorage.setItem('gtd_token', document.getElementById('gh-token').value.trim());
+      closeSettingsModal();
+      loadData();
+    }
+
+    function copyCalendarURL() {
+      const input = document.getElementById('cal-url-display');
+      input.select();
+      navigator.clipboard.writeText(input.value);
+      alert("Enlace copiado al portapapeles. Pégalo en Google Calendar.");
+    }
+
+    function downloadICS() {
+      const ics = generateICS();
+      const blob = new Blob([ics], { type: "text/calendar;charset=utf-8" });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = "calendar.ics";
+      a.click();
+    }
+
+    function exportJSON() {
+      const blob = new Blob([JSON.stringify(db, null, 2)], { type: "application/json" });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `gtd_backup_${new Date().toISOString().split('T')[0]}.json`;
+      a.click();
+    }
+    function triggerImport() { document.getElementById('import-file').click(); }
+    function importJSON(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        try {
+          db = JSON.parse(ev.target.result);
+          persistData();
+        } catch(err) { alert("Archivo JSON no válido."); }
+      };
+      reader.readAsText(file);
+    }
+
+    function escapeHTML(str) {
+      if (!str) return '';
+      return str.replace(/[&<>'"]/g, tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag));
+    }
+
+    window.addEventListener('DOMContentLoaded', loadData);
+  </script>
+</body>
+</html>
+Gracias por el código. Tengo ahora una duda. Será capaz de crear por su cuenta el archivo ics? Ahora mismo no está creado
+
+Sí, la aplicación lo creará de forma completamente automática.
+
+La API de GitHub funciona de tal manera que cuando la aplicación intenta guardar calendar.ics y detecta que el archivo aún no existe en el repositorio, lo crea desde cero sin dar error.
+
+Cómo y cuándo se genera
+Momento de creación: Se creará automáticamente la primera vez que se ejecute un guardado en la aplicación: basta con añadir una acción cualquiera (con el botón +), editar una tarea o marcar un check.
+
+Contenido inicial: La aplicación recopila todas las tareas no completadas que tengan fecha (Due date), les aplica el formato estándar iCal y sube el archivo calendar.ics a la raíz de tu repositorio junto a data.json. Si no hay ninguna tarea con fecha todavía, crea el calendario con la estructura base listo para recibir eventos.
+
+Actualización continua: A partir de ese momento, cada vez que crees, modifiques o completes una tarea con fecha u hora, la aplicación sobreescribe el archivo manteniendo el calendario al día.
+
+Comprobación rápida para crearlo ahora mismo
+Abre tu aplicación web.
+
+Pulsa el botón +, escribe una tarea de prueba con una fecha cualquiera y pulsa Guardar.
+
+El indicador superior pasará brevemente por Guardando... y volverá a Sincronizado.
+
+Si vas a la página de tu repositorio en GitHub y refrescas, verás que ya figura el archivo calendar.ics.
+
+Ten en cuenta que tras crearse el archivo en el repositorio por primera vez, GitHub Pages puede tardar uno o dos minutos en publicarlo en tu enlace web ([https://tu-usuario.github.io/.../calendar.ics](https://tu-usuario.github.io/.../calendar.ics)). Una vez transcurrido ese minuto, ya puedes añadir la URL en Google Calendar.
+
+Me gusta mucho cómo está ahora. Para facilitar aún más el manejo en el ordenador, es posible configurar accesos directos en la página? Es decir, como pulsar M y que me lleve a MEM, o P y a personas, y cosas así (por ejemplo, que pulse el + y me abra el menú de inserción)
+
+Es perfectamente posible y muy fácil de añadir: basta con capturar el evento de teclado en el navegador cuidando que los atajos solo se activen cuando no estés escribiendo dentro de un campo de texto o formulario.
+
+Mapeo de atajos sugerido
++ o c: Abre la ventana de captura rápida (y pone el cursor directamente en el campo de texto).
+
+m o 1: Ir a MEM (Hoy y Ahora).
+
+i o 2: Ir a Inbox.
+
+n o 3: Ir a Next Action.
+
+j o 4: Ir a Proyectos.
+
+p o 5: Ir a Personas (Agendas 1 a 1).
+
+r o 6: Ir a Revisión.
+
+Escape: Cierra cualquier modal o menú abierto al instante.
+
+Código para añadir a tu index.html
+Abre tu archivo index.html en GitHub y busca casi al final la línea:
+
+JavaScript
+window.addEventListener('DOMContentLoaded', loadData);
+Pega este bloque de código justo encima de esa línea:
+
+JavaScript
+    // --- ACCESOS DIRECTOS DE TECLADO ---
+    window.addEventListener('keydown', (e) => {
+      const activeTag = (document.activeElement && document.activeElement.tagName) ? document.activeElement.tagName.toLowerCase() : '';
+      const isTyping = activeTag === 'input' || activeTag === 'textarea' || activeTag === 'select';
+
+      // La tecla Escape siempre cierra cualquier modal abierto
+      if (e.key === 'Escape') {
+        closeCaptureModal();
+        closeEditModal();
+        closeProjectModal();
+        closeAreaModal();
+        closeSettingsModal();
+        return;
+      }
+
+      // Si el cursor está dentro de un campo de texto, no ejecutar atajos de navegación
+      if (isTyping) return;
+
+      const key = e.key.toLowerCase();
+
+      if (key === '+' || key === 'c') {
+        e.preventDefault();
+        openCaptureModal();
+      } else if (key === 'm' || key === '1') {
+        switchTab('mem');
+      } else if (key === 'i' || key === '2') {
+        switchTab('inbox');
+      } else if (key === 'n' || key === '3') {
+        switchTab('next');
+      } else if (key === 'j' || key === '4') {
+        switchTab('projects');
+      } else if (key === 'p' || key === '5') {
+        switchTab('people');
+      } else if (key === 'r' || key === '6') {
+        switchTab('review');
+      }
+    });
+Al pulsar + o c, la aplicación no solo abrirá la ventana de captura, sino que seleccionará el campo de texto de inmediato para que puedas escribir la tarea y pulsar Enter sin tocar el ratón.
+
+Vale, también quiero que al hacer ctrl+enter se guarde automáticamente la tarea que estoy escribiendo
+
+Sustituye el bloque de // --- ACCESOS DIRECTOS DE TECLADO --- que añadimos anteriormente por este código actualizado.
+
+Se ha añadido la detección de Ctrl + Enter (y también Cmd + Enter si usas Mac), tanto para la ventana de nueva captura como para la de edición de tareas:
+
+JavaScript
+    // --- ACCESOS DIRECTOS DE TECLADO ---
+    window.addEventListener('keydown', (e) => {
+      // 1. Guardar automáticamente con Ctrl + Enter (o Cmd + Enter)
+      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+        if (document.getElementById('capture-modal')?.classList.contains('open')) {
+          e.preventDefault();
+          handleSaveCapture();
+          return;
+        }
+        if (document.getElementById('edit-modal')?.classList.contains('open')) {
+          e.preventDefault();
+          saveTaskEdits();
+          return;
+        }
+        if (document.getElementById('project-modal')?.classList.contains('open')) {
+          e.preventDefault();
+          saveNewProject();
+          return;
+        }
+        if (document.getElementById('area-modal')?.classList.contains('open')) {
+          e.preventDefault();
+          saveNewArea();
+          return;
+        }
+      }
+
+      // 2. Escape para cerrar cualquier modal abierto
+      if (e.key === 'Escape') {
+        closeCaptureModal();
+        closeEditModal();
+        closeProjectModal();
+        closeAreaModal();
+        closeSettingsModal();
+        return;
+      }
+
+      const activeTag = (document.activeElement && document.activeElement.tagName) ? document.activeElement.tagName.toLowerCase() : '';
+      const isTyping = activeTag === 'input' || activeTag === 'textarea' || activeTag === 'select';
+
+      // 3. Si el cursor está dentro de un campo de texto, no ejecutar atajos de navegación
+      if (isTyping) return;
+
+      const key = e.key.toLowerCase();
+
+      if (key === '+' || key === 'c') {
+        e.preventDefault();
+        openCaptureModal();
+      } else if (key === 'm' || key === '1') {
+        switchTab('mem');
+      } else if (key === 'i' || key === '2') {
+        switchTab('inbox');
+      } else if (key === 'n' || key === '3') {
+        switchTab('next');
+      } else if (key === 'j' || key === '4') {
+        switchTab('projects');
+      } else if (key === 'p' || key === '5') {
+        switchTab('people');
+      } else if (key === 'r' || key === '6') {
+        switchTab('review');
+      }
+    });
+Flujo de trabajo en teclado
+Pulsa c o + desde cualquier vista para abrir la captura.
+
+Escribe el título, rellena los campos adicionales con el tabulador si lo deseas.
+
+Pulsa Ctrl + Enter en cualquier momento (incluso estando en la caja de notas o situación) para guardar y cerrar al instante.
+
+Esto bien implementado. No sé si se están guardando bien las cosas en el calendar automáticamente. Puedes revisar si hay algún error o es algo de mi configuración?
+
+La sincronización automática mediante URL en Google Calendar suele fallar o dar la impresión de no funcionar por tres motivos técnicos concretos. Para diagnosticar exactamente qué ocurre en tu caso, sigue estas comprobaciones en orden:
+
+1. Comprueba si el archivo calendar.ics realmente existe en GitHub:
+
+Entra en tu repositorio en GitHub desde el navegador.
+
+Revisa la lista de archivos de la rama principal (main o master).
+
+Debe aparecer calendar.ics junto a index.html y data.json.
+
+Si no aparece: en tu aplicación web añade una tarea que tenga Fecha límite asignada y pulsa Guardar. El archivo solo se genera si hay al menos un cambio guardado con fecha.
+
+2. Comprueba si Google Calendar tiene acceso al archivo (Prueba de incógnito):
+
+Abre una ventana de modo incógnito en tu navegador (sin iniciar sesión en GitHub).
+
+Pega la URL de tu calendario: [https://tu-usuario.github.io/tu-repo/calendar.ics](https://tu-usuario.github.io/tu-repo/calendar.ics) (cambiando tu-usuario y tu-repo por los tuyos).
+
+Si se descarga un archivo de texto o se abre en pantalla: Google Calendar puede leerlo sin problemas.
+
+Si aparece un error 404: Google Calendar no puede acceder. Esto ocurre si tu repositorio es privado en una cuenta gratuita de GitHub (GitHub Pages solo permite páginas públicas en cuentas gratuitas, o bien Pages no se ha terminado de desplegar). Para solucionarlo, en GitHub entra en Settings 
+→ General 
+→ baja hasta Danger Zone y cambia la visibilidad a Public.
+
+3. El intervalo de actualización de Google Calendar (no es inmediato):
+
+Los calendarios añadidos por URL en Google Calendar no se actualizan en tiempo real ni al segundo.
+
+Los servidores de Google consultan el archivo externo periódicamente en intervalos de entre 8 y 24 horas.
+
+Si añades una tarea en la app web ahora, es normal que no aparezca en Google Calendar hasta que los servidores de Google hagan su siguiente ronda de lectura. Google no ofrece un botón para forzar la actualización inmediata de suscripciones URL.
+
+4. Comprueba que la tarea tiene fecha asignada:
+
+El generador de calendario filtra y descarta automáticamente cualquier tarea que no tenga el campo dueDate relleno, así como las tareas marcadas como Completed o Eliminated.
+
+Para tareas con horario fijado o compromisos urgentes que necesites ver reflejados de inmediato en tu calendario sin esperar las horas de refresco de Google, pulsa el botón + Cal que aparece en la tarjeta de la tarea: abrirá Google Calendar con el título, fecha y hora preconfigurados para guardarla en tu cuenta en un solo clic.
+
+Querría que en la pestaña de Next action se pudiera también filtrar por situación. Pensando en que quizá tengo que hacer algo en casa pero que no tiene fecha ni proyecto y no quiero que se me pierda
+
+Para habilitar los filtros por situación en la pestaña de Next Action, solo necesitas actualizar la función renderNextActions en tu archivo index.html.
+
+Busca en tu archivo la función actual:
+
+JavaScript
+    function renderNextActions(container, today) {
+      const nextTasks = db.tasks.filter(t => t.status === 'Next Action');
+      let html = `<div class="section-title">Todas las Next Actions (${nextTasks.length})</div>`;
+      html += nextTasks.length === 0 ? `<p style="color:var(--text-muted); font-size:0.9rem;">No hay acciones activas.</p>` : nextTasks.map(t => renderTaskCard(t, today)).join('');
+      container.innerHTML = html;
+    }
+Y reemplázala completamente por esta versión:
+
+JavaScript
+    function renderNextActions(container, today) {
+      let nextTasks = db.tasks.filter(t => t.status === 'Next Action');
+      const allSituations = getAllSituations();
+
+      if (filterSituation) {
+        nextTasks = nextTasks.filter(t => t.situation === filterSituation);
+      }
+
+      let html = `
+        <div class="filter-bar">
+          <span class="filter-chip ${filterSituation === '' ? 'active' : ''}" onclick="setSituationFilter('')">Todas</span>
+          ${allSituations.map(s => `<span class="filter-chip ${filterSituation === s ? 'active' : ''}" onclick="setSituationFilter('${escapeHTML(s)}')">${escapeHTML(s)}</span>`).join('')}
+        </div>
+        <div class="section-title">Next Actions ${filterSituation ? `— ${escapeHTML(filterSituation)}` : ''} (${nextTasks.length})</div>
+      `;
+      
+      html += nextTasks.length === 0 
+        ? `<p style="color:var(--text-muted); font-size:0.9rem;">No hay acciones activas${filterSituation ? ' para este contexto' : ''}.</p>` 
+        : nextTasks.map(t => renderTaskCard(t, today)).join('');
+        
+      container.innerHTML = html;
+    }
+Comportamiento resultante
+Barra de chips superior: Aparecerán las etiquetas de situación disponibles (Todas, @En casa, @Despacho, etc.) en la parte superior de la vista de Next Actions.
+
+Filtrado contextual: Si pulsas sobre @En casa, la lista se reducirá al instante para mostrar únicamente las siguientes acciones etiquetadas con ese contexto, independientemente de que no tengan fecha límite ni proyecto asignado.
+
+Contador dinámico: El título indicará la situación seleccionada y el número exacto de tareas disponibles bajo ese filtro.
+
+,e gustaría combinar eso con un lugar donde pueda ver las actividades en modo agenda (no limitada a 7 días). Sugiereme cómo hacerlo, en qué pestaña, etc. Esto es para el caso en que quiera ir adelantando una cosa que tengo aue hacer para dentro de un tiempo, como preparar una ponencia (la fecha límite es una, pero necesito bastante tiempo para prepararla)
+
+Para resolver esto sin saturar la navegación ni perder la filosofía GTD, conviene analizar dónde ubicarlo, cómo estructurar visualmente la línea temporal y cómo gestionar la preparación anticipada.
+
+1. Dónde ubicar la vista
+Actualmente la barra inferior tiene 6 pestañas (MEM, Inbox, Next, Proyectos, Personas, Revisión). Añadir una 7.ª pestaña en pantallas de móvil suele comprimir demasiado los botones. Tienes dos opciones ergonómicas:
+
+Opción A (Recomendada): Sub-vista dentro de MEM con selector superior:
+
+En la cabecera de MEM, colocar un selector de dos vistas: [Hoy y Ahora] | [Agenda / Horizonte].
+
+Mantiene MEM como el centro neurálgico temporal: en una pestaña atiendes el día a día y con un toque pasas a la perspectiva de medio y largo plazo.
+
+Opción B: Pestaña propia «Agenda» en la barra inferior:
+
+Añadir el botón 📅 Agenda. Para que encaje bien en pantallas móviles pequeñas, se ajusta el espaciado y se priorizan iconos con texto compacto.
+
+2. Cómo estructurar la vista de Agenda
+Para que una lista a largo plazo no sea un bloque infinito inmanejable, lo más efectivo es agrupar las tareas con fecha en bloques cronológicos progresivos:
+
+Para Hoy y Vencidas: Lo que ya está en curso.
+
+Esta Semana (Próximos 7 días): Compromisos inmediatos.
+
+Próximas 2 a 4 semanas (Este mes): Lo que ya empieza a exigir preparación.
+
+Próximos meses (Noviembre, Diciembre, etc.): Agrupado por mes natural.
+
+Elementos visuales clave en cada tarjeta:
+
+Contador regresivo relativo: Mostrar una etiqueta tipo en 18 días o en 2 meses junto a la fecha exacta.
+
+Proyecto padre visible: Ver a qué proyecto pertenece (ej. 📁 Ponencia Gallarate) para identificar si es un hito de entrega.
+
+Indicador de preparación: Mostrar si ese proyecto ya tiene una siguiente acción (Next Action) activa o si está parado.
+
+3. La dinámica de trabajo (GTD) para tareas que exigen preparación previa
+Para casos como una ponencia o un artículo donde la fecha límite es lejana pero requiere semanas de trabajo previo, el método más limpio es:
+
+La fecha del hito final: La tarea principal o entrega lleva la fecha límite real (ej. Entrega de ponencia: 15 de diciembre).
+
+Acciones de avance sin fecha fija: No le pongas la fecha de diciembre a las subtareas preparatorias («Escribir esquema», «Revisar bibliografía»), porque en una agenda aparecerían en diciembre cuando en realidad necesitas hacerlas ya. Esas son Next Action asociadas al mismo proyecto.
+
+El valor de la Agenda a largo plazo: Al abrir la vista de Agenda ves que la ponencia está a 3 semanas; desde esa misma vista puedes pulsar en el proyecto y comprobar qué acción previa tienes abierta en el día a día para avanzar.
+
+Pregunta para avanzar
+¿Prefieres la Opción A (un selector [Hoy] / [Agenda] dentro de MEM) o la Opción B (una pestaña independiente 📅 Agenda en la barra inferior)?
+
+En cuanto elijas la que mejor se adapte a tu forma de navegar, preparamos el código correspondiente.
+
+Has incluido también lo anterior de situación?
+
+Sí, está totalmente incluido.
+
+En la respuesta anterior solo te planteé las opciones de diseño de la Agenda antes de escribir el código definitivo. A continuación tienes el código completo y actualizado de index.html que integra ambas cosas:
+
+Filtro por Situación en Next Actions: ahora en la pestaña Next Action tienes los botones (chips) superiores (Todas, @En casa, @Despacho, etc.) para ver al instante lo que puedes hacer en cada contexto, aunque la tarea no tenga fecha ni proyecto.
+
+Modo Agenda a Largo Plazo:
+
+Dentro de la pestaña MEM tienes ahora un selector superior con dos modos:
+
+⚡ Hoy y Ahora: tu vista diaria de alta velocidad sin saturación.
+
+📅 Agenda Horizonte: tu línea temporal completa a medio y largo plazo (sin límite de 7 días).
+
+La Agenda agrupa todas tus tareas con fecha en bloques claros: Vencidas, Para Hoy, Esta semana (7 días), Próximas semanas (este mes) y Meses futuros (ej. Noviembre 2026, Diciembre 2026...).
+
+Cada tarea muestra un contador relativo dinámico (ej. en 18 días, en 2 meses) y su proyecto asociado (📁), permitiéndote anticipar hitos como ponencias, clases o entregas.
+
+También puedes filtrar la propia Agenda por Situación si deseas ver qué compromisos futuros tienes en un lugar determinado.
+
+Código Completo (index.html)
+Reemplaza todo el contenido de tu archivo index.html en GitHub por este:
+
+HTML
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -1408,6 +3002,2169 @@
       }
 
       // 2. Escape para cerrar modales
+      if (e.key === 'Escape') {
+        closeCaptureModal();
+        closeEditModal();
+        closeProjectModal();
+        closeAreaModal();
+        closeSettingsModal();
+        return;
+      }
+
+      const activeTag = (document.activeElement && document.activeElement.tagName) ? document.activeElement.tagName.toLowerCase() : '';
+      const isTyping = activeTag === 'input' || activeTag === 'textarea' || activeTag === 'select';
+
+      if (isTyping) return;
+
+      const key = e.key.toLowerCase();
+
+      if (key === '+' || key === 'c') {
+        e.preventDefault();
+        openCaptureModal();
+      } else if (key === 'm' || key === '1') {
+        switchTab('mem');
+      } else if (key === 'i' || key === '2') {
+        switchTab('inbox');
+      } else if (key === 'n' || key === '3') {
+        switchTab('next');
+      } else if (key === 'j' || key === '4') {
+        switchTab('projects');
+      } else if (key === 'p' || key === '5') {
+        switchTab('people');
+      } else if (key === 'r' || key === '6') {
+        switchTab('review');
+      }
+    });
+
+    window.addEventListener('DOMContentLoaded', loadData);
+  </script>
+</body>
+</html>
+Dame el código como un html para descargar, ya que no me está copiando más de 400 líneas de código
+
+Tu archivo HTML listo para descargar está preparado:
+
+Icono de HTML
+index
+ HTML 
+Resumen de las mejoras incluidas en este archivo
+Filtro contextual por Situación en Next Action: Barra superior de chips (Todas, @En casa, @Despacho, etc.) para consultar acciones disponibles según el contexto físico o de herramientas, sin requerir fecha límite ni proyecto.
+
+Línea temporal extendida en MEM (Modo Agenda Horizonte):
+
+Selector superior conmutador entre ⚡ Hoy y Ahora (foco diario inmediato) y 📅 Agenda Horizonte (planificación a medio y largo plazo sin tope de 7 días).
+
+Agrupación cronológica en bloques: Vencidas, Para Hoy, Esta Semana (7 días), Próximas 2-4 semanas (este mes) y Meses futuros (ordenados por mes y año).
+
+Etiquetas de tiempo relativo dinámicas (en 18 días, en 2 meses, etc.) junto a la fecha fija y el proyecto asociado (📁).
+
+Gestión integral de Personas (Agendas 1 a 1):
+
+Campo independiente Persona con autocompletado en los modales de captura y edición.
+
+Pestaña dedicada 👤 Personas en la barra inferior con directorio activo y vista individual dividida en Por tratar / Siguientes acciones y Esperando / Delegadas.
+
+Limpieza automática: las personas sin compromisos pendientes desaparecen solas del directorio.
+
+Herramienta para renombrar o fusionar errores de escritura en bloque.
+
+Gestor de Situaciones en Ajustes: Panel dedicado en ⚙ Ajustes para renombrar o eliminar etiquetas de contexto de todas las tareas a la vez.
+
+Integración con Google Calendar: Generación en tiempo real del archivo estándar calendar.ics al guardar cambios temporales, botón directo + Cal en cada tarjeta y cálculo predeterminado de duración (+1 hora si no se especifica hora de fin).
+
+Atajos de teclado rápidos:
+
+Ctrl + Enter (o Cmd + Enter) para guardar inmediatamente desde cualquier formulario.
+
+Esc para cancelar/cerrar cualquier modal.
+
+c o + para abrir la captura rápida.
+
+m/1 (MEM), i/2 (Inbox), n/3 (Next), j/4 (Proyectos), p/5 (Personas), r/6 (Revisión).
+
+Cómo actualizar tu repositorio
+Descarga el archivo index.html generado arriba.
+
+Ve a tu repositorio en GitHub.
+
+Entra en el archivo index.html existente, pulsa en el icono del lápiz (Edit this file), o bien usa Add file 
+→ Upload files arrastrando el archivo descargado para sobreescribirlo.
+
+Haz clic en el botón verde Commit changes.
+
+Ahora mismo está muy bien, pero no consigo ver de un modo fácil las tareas asociadas a un proyecto concreto. Cómo puedo hacer? Se me ocurren dos cosas:
+
+Que se puedan ver a partir de la página de proyectos.
+Que clicando en la etiqueta de proyecto se abra la vista de proyecto con sus datos y tareas asociadas.
+Unido a esto, otras ideas:
+
+Que los proyectos puedan estar en Inbox, Activos, en pausa o completados. Así puedo preparar proyectos "para hacer algún día".
+Que a los proyectos pueda asociar personas, de modo que antes de una reunión con alguien pueda revisar el proyecto en común y dar cuenta de cómo voy.
+
+
+Antes de darme el código adaptado explícame cómo piensas hacerlo y si tienes alguna sugerencia más para mi sistema.
+
+Otra cosa que estoy pensando es cómo incluir también el mantenimiento, que es muy importante en GTD.
+
+Otra más es la cuestión de las tareas cíclicas, que son para cada mes o cada semana, cómo añadirlas.
+
+1. Vista de detalle de Proyecto y navegación directa:
+
+Acceso desde dos puntos: Funciona con la misma lógica que ya tienes en la pestaña de Personas (selectedPerson). Podrás entrar en la ficha de un proyecto tanto haciendo clic sobre su tarjeta en la pestaña 📁 Proyectos como pulsando directamente sobre la etiqueta azul 📁 Nombre del proyecto en cualquier tarea (desde MEM, Next Action, Agenda, etc.).   
+HTML
++ 1
+
+Contenido de la ficha del proyecto:
+
+Cabecera con el título, Área de responsabilidad, selector rápido para cambiar su estado y persona asociada.
+
+Campo de Notas / Objetivo del proyecto para guardar apuntes generales o el resultado deseado (como solías formular en Notion del estilo «He escrito el capítulo III») sin tener que crear tareas falsas para guardar información.   
+ZIP
+
+Lista completa de sus tareas agrupadas por bloque: Siguientes Acciones (Next Action), Delegadas (Delegated), Por clarificar (Inbox) y Completadas (Completed). Ver las completadas dentro del proyecto es clave para rendir cuentas en una reunión de lo que ya has avanzado.
+
+Captura contextual automática: Si pulsas el botón + (o la tecla c) mientras estás viendo un proyecto concreto, la nueva tarea se vinculará automáticamente a ese proyecto (igual que ya ocurre cuando estás dentro de una persona).   
+HTML
+
+2. Estados de los Proyectos (Inbox, Activo, En pausa, Completado):
+
+Selector superior en la pestaña Proyectos: En lugar de ver todos los proyectos mezclados, tendrás un conmutador en la parte superior: [Activos] | [Inbox / En pausa] | [Completados].
+
+Efecto inteligente sobre las tareas: Si pasas un proyecto a En pausa (tu incubadora de «Algún día / Tal vez»), las tareas que tenga dentro se ocultarán automáticamente de MEM y de Next Action para no hacer ruido en tu día a día, pero seguirán guardadas dentro del proyecto esperando a que lo reactives.
+
+3. Asociación de Personas a Proyectos (Proyectos en común):
+
+Campo Persona en el proyecto: Al crear o editar un proyecto, tendrás el mismo buscador con autocompletado de personas que usan las tareas.   
+HTML
+
+Conexión con la Agenda 1 a 1: Cuando entres en la ficha de alguien en la pestaña 👤 Personas, el primer bloque que verás arriba del todo será 📁 Proyectos en común. Con un toque podrás saltar de la agenda de esa persona al proyecto compartido, revisar qué tareas están hechas o pendientes, y volver atrás.   
+HTML
+
+Visibilidad activa: Mientras una persona tenga un proyecto Activo contigo, seguirá apareciendo en tu directorio de Personas aunque en ese momento no tenga tareas individuales sueltas.   
+HTML
+
+4. Cómo implementar las Tareas Cíclicas (Recurrentes):
+
+Lógica de «regeneración al completar» (sin servidores externos): En lugar de llenar tu base de datos y tu calendario de copias infinitas hacia el futuro, añadimos un selector de Frecuencia en la tarea: No se repite, Diaria, Semanal, Quincenal, Mensual o Anual.
+
+Comportamiento al marcar ✓: Cuando completas una tarea cíclica (por ejemplo, «Elaborar cug» o «Escribir columna Omnes» que tenías en Notion):   
+ZIP
+
+La tarea calcula automáticamente su próxima fecha (dueDate + 7 días, + 1 mes, etc.) a partir de su fecha prevista o del día de hoy.
+
+Desaparece al instante de tu vista de Hoy en MEM (dándote la sensación de bandeja limpia) y pasa a colocarse automáticamente en su nueva fecha dentro de la Agenda Horizonte y de tu calendar.ics.   
+HTML
+
+En la tarjeta de la tarea se mostrará un icono 🔁 (ej. 🔁 Semanal) para que identifiques de un vistazo qué compromisos son hábitos o ciclos.
+
+5. Cómo integrar el Mantenimiento GTD (Weekly Review):
+
+En tu exportación de Notion tenías tareas periódicas de Weekly review con su propia lista de comprobación. Podemos potenciar la pestaña 🔄 Revisión para que sea tu centro de mantenimiento con tres herramientas:   
+ZIP
++ 1
+
+Detector automático de «Proyectos Encallados» (Alerta GTD): Un bloque que detecta y te muestra automáticamente qué proyectos en estado Activo se han quedado sin ninguna Next Action ni tarea pendiente. Es la forma más rápida de evitar que un proyecto muera por olvido; desde esa misma alerta podrás asignarle su siguiente acción.
+
+Revisión agrupada de estados: Tus listas de tareas Delegated (en espera), proyectos En pausa y tareas en Reevaluate.   
+HTML
+
+Modo Guiado de Revisión Semanal (Checklist): Una lista de verificación interactiva con tus pasos de mantenimiento (vaciar cabezas/Inbox, revisar calendario próximo, repasar delegadas, revisar proyectos encallados) con un botón de «Reiniciar checklist» para usarla cada semana.   
+ZIP
+
+Botón de limpieza de histórico: Una opción para purgar o archivar tareas completadas antiguas y mantener el archivo data.json siempre ligero.   
+HTML
+
+Dos sugerencias adicionales para pulir tu flujo:
+
+Edición rápida de Proyectos: Actualmente los proyectos solo se crean o se eliminan; añadiremos un modal de edición de proyecto para que puedas cambiarle el nombre, moverlo de Área, cambiar su estado (Inbox / Activo / En pausa / Completado), asignarle persona o escribir notas en cualquier momento.   
+HTML
+
+Sesiones o contadores (x): En tu sistema de Notion usabas mucho el formato Lectura FyC 4 x o Sertillanges 6 x para dividir lecturas largas en bloques. Si sigues usando ese método, podemos hacer que las tareas cíclicas también permitan un modo de «Repeticiones restantes» (o un botón rápido en la tarjeta para descontar una sesión sin dar la tarea por terminada hasta llegar a cero).   
+ZIP
+
+¿Qué te parece este diseño y qué detalles quieres ajustar o descartar antes de generar el nuevo archivo index.html?
+
+Muy bien. Acepto todo. En lo de las tareas cíclicas, pon que por defecto todas las tareas sean "No se repite", "Singular". Me interesa que se repitan a partir de la fecha de inicio, no de compleción.
+
+Puedes darme el código
+
+Updating project association features
+Muy bien. Acepto todo. En lo de las tareas cíclicas, pon que por defecto todas las tareas sean "No se repite", "Singular". Me interesa que se repitan a partir de la fecha de inicio, no de compleción.
+
+Puedes darme el código
+
+El archivo index.html actualizado con todas las funcionalidades solicitadas está listo para descargar:
+
+Icono de HTML
+index
+ HTML 
+Novedades implementadas en esta versión
+Vista detallada de Proyectos y navegación directa:
+
+Al pulsar sobre cualquier proyecto en la pestaña 📁 Proyectos, se abre su ficha detallada.
+
+Al hacer clic en la etiqueta azul 📁 Proyecto en cualquier tarjeta de tarea (desde MEM, Next Action o Agenda), accedes directamente a la vista completa de ese proyecto.
+
+La ficha del proyecto incluye:
+
+Cabecera con título, Área, selector de estado y persona asociada (con enlace directo a su agenda).
+
+Bloque de Notas / Objetivo del proyecto para almacenar anotaciones o criterios de éxito.
+
+Botón + Acción: añade una tarea asignada automáticamente a ese proyecto.
+
+Tareas agrupadas por estado: Siguientes Acciones (Next Action), Delegadas (Delegated), Por procesar (Inbox), Incubadora (Reevaluate) y Completadas (Completed).
+
+Estados de Proyecto (Activo, Inbox, En pausa, Completado):
+
+Selector superior en la pestaña de proyectos para alternar entre Activos, Inbox / En pausa y Completados.
+
+Aislamiento de foco: Las tareas de proyectos en pausa o completados se excluyen automáticamente de MEM (Hoy y Ahora) y de Next Action para evitar distracciones en el día a día.
+
+Proyectos en común en la pestaña Personas:
+
+Al abrir la ficha de una persona en 👤 Personas, el primer bloque muestra los 📁 Proyectos en común asignados a ella.
+
+Las personas con proyectos activos permanecen en el directorio aunque no tengan tareas individuales sueltas.
+
+Tareas Cíclicas / Recurrentes (a partir de la fecha de inicio):
+
+Selector de repetición: No se repite (Singular) (por defecto), Diaria, Semanal, Quincenal, Mensual o Anual.
+
+Cálculo exacto sobre fecha de inicio: Al completar una tarea cíclica, la fecha siguiente se calcula sumando el intervalo directamente a su fecha programada original (dueDate), no al día en que se completa.
+
+Genera un registro completado en el historial y avanza la tarea activa a su próxima fecha, reflejándose de inmediato en calendar.ics y en la Agenda.
+
+Muestra una etiqueta visual distintiva: 🔁 Semanal, 🔁 Mensual, etc.
+
+Mantenimiento GTD (Weekly Review):
+
+Alerta de Proyectos Encallados: Detecta automáticamente qué proyectos activos no tienen ninguna Next Action definida y ofrece un botón directo para asignarle su siguiente paso.
+
+Checklist interactivo de Revisión Semanal: Pasos estándar de GTD guardados en memoria local con botón de reinicio para cada semana.
+
+Herramienta de limpieza: Opción para purgar tareas completadas antiguas y mantener el archivo data.json ligero.
+
+Modal de Edición de Proyectos: Permite modificar en cualquier momento el nombre, área, estado, persona vinculada y notas de cualquier proyecto.
+
+Pasos para actualizarlo en GitHub
+Descarga el archivo index.html generado arriba.
+
+Abre tu repositorio en GitHub y sube el archivo descargado para reemplazar el anterior.
+
+Haz clic en Commit changes para guardar.
+
+
+
+
+
+Gemini es una IA y puede cometer errores.
+
+Deciding default task repetition
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>Mi GTD</title>
+  <style>
+    :root {
+      --bg: #f8fafc;
+      --surface: #ffffff;
+      --border: #cbd5e1;
+      --border-light: #e2e8f0;
+      --text: #0f172a;
+      --text-muted: #64748b;
+      --primary: #2563eb;
+      --primary-hover: #1d4ed8;
+      --danger: #dc2626;
+      --danger-bg: #fee2e2;
+      --warning-bg: #fef3c7;
+      --warning-text: #92400e;
+      --success: #16a34a;
+      --success-bg: #dcfce7;
+      --tag-bg: #f1f5f9;
+      --radius: 10px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; -webkit-tap-highlight-color: transparent; }
+    body { background: var(--bg); color: var(--text); padding-bottom: 90px; min-height: 100vh; }
+
+    header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border-light);
+      position: sticky;
+      top: 0;
+      z-index: 30;
+      padding: 12px 16px;
+    }
+    .header-top { display: flex; justify-content: space-between; align-items: center; max-width: 800px; margin: 0 auto; }
+    .header-title { font-size: 1.1rem; font-weight: 700; letter-spacing: -0.02em; }
+    .status-badge { font-size: 0.75rem; padding: 3px 9px; border-radius: 999px; background: #e2e8f0; color: var(--text-muted); font-weight: 600; }
+    .status-badge.syncing { background: #dbeafe; color: var(--primary); }
+    .status-badge.synced { background: var(--success-bg); color: var(--success); }
+    .status-badge.error { background: var(--danger-bg); color: var(--danger); }
+
+    /* Botón Flotante de Acción (FAB) */
+    .fab {
+      position: fixed; bottom: 74px; right: 20px; width: 54px; height: 54px;
+      border-radius: 50%; background: var(--primary); color: white; border: none;
+      font-size: 1.8rem; line-height: 1; box-shadow: 0 4px 14px rgba(37, 99, 235, 0.4);
+      cursor: pointer; z-index: 45; display: flex; align-items: center; justify-content: center;
+      transition: transform 0.15s ease;
+    }
+    .fab:active { transform: scale(0.92); }
+
+    /* Botones y Formularios */
+    .btn {
+      padding: 10px 15px; border-radius: var(--radius); border: none;
+      font-weight: 600; cursor: pointer; font-size: 0.9rem; transition: background 0.15s ease;
+      display: inline-flex; align-items: center; justify-content: center; gap: 4px;
+    }
+    .btn-primary { background: var(--primary); color: white; }
+    .btn-primary:hover { background: var(--primary-hover); }
+    .btn-secondary { background: var(--tag-bg); color: var(--text); border: 1px solid var(--border-light); }
+    .btn-secondary:hover { background: #e2e8f0; }
+    .btn-sm { padding: 5px 9px; font-size: 0.8rem; border-radius: 6px; }
+
+    /* Selectores de sub-vistas */
+    .view-toggle {
+      display: flex; gap: 4px; background: var(--border-light); padding: 3px;
+      border-radius: 8px; margin-bottom: 12px;
+    }
+    .view-toggle button {
+      flex: 1; border: none; background: none; padding: 7px 10px; font-size: 0.82rem;
+      font-weight: 600; color: var(--text-muted); border-radius: 6px; cursor: pointer; transition: all 0.15s ease;
+    }
+    .view-toggle button.active { background: var(--surface); color: var(--primary); box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
+
+    .form-group { display: flex; flex-direction: column; gap: 4px; position: relative; }
+    .form-group label { font-size: 0.75rem; color: var(--text-muted); font-weight: 600; }
+    .form-group select, .form-group input, .form-group textarea {
+      padding: 9px 11px; border: 1px solid var(--border); border-radius: 6px; font-size: 0.9rem; outline: none; background: #fff;
+    }
+    .form-group select:focus, .form-group input:focus, .form-group textarea:focus { border-color: var(--primary); }
+
+    /* Desplegables de Autocompletado */
+    .autocomplete-dropdown {
+      position: absolute; top: calc(100% + 2px); left: 0; right: 0; background: var(--surface);
+      border: 1px solid var(--border); border-radius: 6px; max-height: 180px; overflow-y: auto;
+      z-index: 120; box-shadow: 0 4px 16px rgba(0,0,0,0.1); display: none;
+    }
+    .autocomplete-dropdown.open { display: block; }
+    .autocomplete-item {
+      padding: 8px 12px; font-size: 0.85rem; cursor: pointer; display: flex; align-items: center;
+      justify-content: space-between; border-bottom: 1px solid var(--border-light);
+    }
+    .autocomplete-item:last-child { border-bottom: none; }
+    .autocomplete-item:hover { background: var(--tag-bg); color: var(--primary); }
+    .autocomplete-item.create-new { color: var(--primary); font-weight: 600; }
+
+    /* Navegación Inferior */
+    nav {
+      position: fixed; bottom: 0; left: 0; right: 0; background: var(--surface);
+      border-top: 1px solid var(--border-light); display: flex; justify-content: space-around;
+      padding: 8px 0; z-index: 40;
+    }
+    .nav-btn {
+      display: flex; flex-direction: column; align-items: center; gap: 3px;
+      background: none; border: none; color: var(--text-muted); font-size: 0.7rem; cursor: pointer; flex: 1; padding: 4px 0;
+    }
+    .nav-btn.active { color: var(--primary); font-weight: 700; }
+    .nav-btn span:first-child { font-size: 1.1rem; }
+
+    /* Contenido */
+    main { max-width: 800px; margin: 16px auto; padding: 0 16px; }
+    .filter-bar { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 8px; margin-bottom: 12px; }
+    .filter-chip {
+      padding: 5px 12px; border-radius: 999px; background: var(--surface);
+      border: 1px solid var(--border-light); font-size: 0.8rem; white-space: nowrap; cursor: pointer; color: var(--text-muted);
+    }
+    .filter-chip.active { background: var(--primary); color: white; border-color: var(--primary); font-weight: 600; }
+
+    .section-title {
+      font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.06em;
+      color: var(--text-muted); margin: 24px 0 8px; font-weight: 700;
+    }
+    .task-card {
+      background: var(--surface); border: 1px solid var(--border-light); border-radius: var(--radius);
+      padding: 12px 14px; margin-bottom: 8px; display: flex; flex-direction: column; gap: 6px;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.02);
+    }
+    .task-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+    .task-title { font-size: 0.95rem; font-weight: 500; word-break: break-word; flex: 1; line-height: 1.4; cursor: pointer; }
+    .task-meta { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; font-size: 0.75rem; }
+    .tag { padding: 3px 7px; border-radius: 4px; background: var(--tag-bg); color: var(--text-muted); }
+    .tag-due { background: var(--warning-bg); color: var(--warning-text); font-weight: 600; }
+    .tag-due.overdue { background: var(--danger-bg); color: var(--danger); font-weight: 700; }
+    .tag-project { background: #e0f2fe; color: #0369a1; font-weight: 600; cursor: pointer; }
+    .tag-project:hover { text-decoration: underline; }
+    .tag-sit { background: #ede9fe; color: #6d28d9; font-weight: 600; }
+    .tag-person { background: #f0fdf4; color: #166534; font-weight: 600; cursor: pointer; }
+    .tag-person:hover { text-decoration: underline; }
+    .tag-repeat { background: #fef9c3; color: #854d0e; font-weight: 600; }
+    .tag-status-active { background: var(--success-bg); color: var(--success); font-weight: 600; }
+    .tag-status-paused { background: var(--warning-bg); color: var(--warning-text); font-weight: 600; }
+    .tag-status-inbox { background: #e0f2fe; color: #0369a1; font-weight: 600; }
+    .tag-status-completed { background: #e2e8f0; color: var(--text-muted); font-weight: 600; }
+    .task-actions { display: flex; gap: 6px; margin-top: 4px; }
+
+    /* Modales */
+    .modal-overlay {
+      position: fixed; inset: 0; background: rgba(15, 23, 42, 0.45); display: none;
+      align-items: center; justify-content: center; z-index: 100; padding: 16px;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal {
+      background: var(--surface); padding: 20px; border-radius: var(--radius);
+      width: 100%; max-width: 500px; max-height: 90vh; overflow-y: auto; box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+    }
+    .settings-group { margin-bottom: 18px; padding-bottom: 16px; border-bottom: 1px solid var(--border-light); }
+    .settings-group:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+    .settings-group-title { font-size: 0.85rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--primary); margin-bottom: 10px; }
+
+    /* Estilos Checklist Revisión */
+    .checklist-item {
+      display: flex; align-items: flex-start; gap: 10px; padding: 10px;
+      background: var(--surface); border: 1px solid var(--border-light); border-radius: 8px; margin-bottom: 8px;
+    }
+    .checklist-item input[type="checkbox"] { width: 18px; height: 18px; margin-top: 2px; cursor: pointer; }
+    .checklist-item.done { opacity: 0.6; }
+    .checklist-item.done label { text-decoration: line-through; }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="header-top">
+      <div class="header-title">Mi GTD</div>
+      <div style="display:flex; align-items:center; gap:8px;">
+        <span id="sync-status" class="status-badge">Iniciando...</span>
+        <button class="btn btn-secondary btn-sm" onclick="openSettingsModal()">⚙ Ajustes</button>
+      </div>
+    </div>
+  </header>
+
+  <main id="app-content"></main>
+
+  <!-- Botón flotante para Captura Rápida -->
+  <button class="fab" onclick="openCaptureModal()" title="Capturar Acción">+</button>
+
+  <!-- Navegación Inferior -->
+  <nav>
+    <button class="nav-btn active" onclick="switchTab('mem')">
+      <span>⚡</span><span>MEM</span>
+    </button>
+    <button class="nav-btn" onclick="switchTab('inbox')">
+      <span>📥</span><span>Inbox</span>
+    </button>
+    <button class="nav-btn" onclick="switchTab('next')">
+      <span>🎯</span><span>Next Action</span>
+    </button>
+    <button class="nav-btn" onclick="switchTab('projects')">
+      <span>📁</span><span>Proyectos</span>
+    </button>
+    <button class="nav-btn" onclick="switchTab('people')">
+      <span>👤</span><span>Personas</span>
+    </button>
+    <button class="nav-btn" onclick="switchTab('review')">
+      <span>🔄</span><span>Revisión</span>
+    </button>
+  </nav>
+
+  <!-- Modal Captura Rápida -->
+  <div class="modal-overlay" id="capture-modal">
+    <div class="modal">
+      <h3 style="margin-bottom: 12px;">Nueva Acción</h3>
+      <div class="form-group" style="margin-bottom: 10px;">
+        <label>Acción / Tarea</label>
+        <input type="text" id="capture-title" placeholder="¿Qué hay que hacer? (Enter)" onkeydown="if(event.key === 'Enter') handleSaveCapture()">
+      </div>
+      <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px; margin-bottom: 10px;">
+        <div class="form-group">
+          <label>Estado</label>
+          <select id="capture-status">
+            <option value="Inbox" selected>Inbox</option>
+            <option value="Next Action">Next Action</option>
+            <option value="Delegated">Delegated</option>
+            <option value="Reevaluate">Reevaluate</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Fecha Límite</label>
+          <input type="date" id="capture-due">
+        </div>
+      </div>
+      <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px; margin-bottom: 10px;">
+        <div class="form-group">
+          <label>Hora Inicio (opcional)</label>
+          <input type="time" id="capture-start">
+        </div>
+        <div class="form-group">
+          <label>Hora Fin (def: +1h)</label>
+          <input type="time" id="capture-end">
+        </div>
+      </div>
+      <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px; margin-bottom: 10px;">
+        <div class="form-group">
+          <label>Proyecto</label>
+          <select id="capture-project"><option value="">(Sin Proyecto)</option></select>
+        </div>
+        <div class="form-group">
+          <label>Situación / Contexto</label>
+          <input type="text" id="capture-sit" placeholder="Ej: @Despacho" autocomplete="off" oninput="handleSitInput('capture')" onfocus="handleSitInput('capture')">
+          <div class="autocomplete-dropdown" id="capture-sit-dropdown"></div>
+        </div>
+      </div>
+      <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px; margin-bottom: 10px;">
+        <div class="form-group">
+          <label>Persona (Delegada o Por hablar)</label>
+          <input type="text" id="capture-person" placeholder="Ej: Francesco Russo" autocomplete="off" oninput="handlePersonInput('capture')" onfocus="handlePersonInput('capture')">
+          <div class="autocomplete-dropdown" id="capture-person-dropdown"></div>
+        </div>
+        <div class="form-group">
+          <label>Repetición / Frecuencia</label>
+          <select id="capture-recurrence">
+            <option value="none" selected>No se repite (Singular)</option>
+            <option value="daily">Diaria</option>
+            <option value="weekly">Semanal</option>
+            <option value="biweekly">Quincenal</option>
+            <option value="monthly">Mensual</option>
+            <option value="yearly">Anual</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group" style="margin-bottom: 14px;">
+        <label>Notas / Descripción</label>
+        <textarea id="capture-desc" rows="2" placeholder="Detalles opcionales..."></textarea>
+      </div>
+      <div style="display:flex; justify-content: flex-end; gap:8px;">
+        <button class="btn btn-secondary" onclick="closeCaptureModal()">Cancelar</button>
+        <button class="btn btn-primary" onclick="handleSaveCapture()">Guardar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Editar Tarea -->
+  <div class="modal-overlay" id="edit-modal">
+    <div class="modal">
+      <h3 style="margin-bottom: 14px;">Detalles de la Acción</h3>
+      <input type="hidden" id="edit-id">
+      <div class="form-group" style="margin-bottom: 10px;">
+        <label>Acción</label>
+        <input type="text" id="edit-title">
+      </div>
+      <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px; margin-bottom: 10px;">
+        <div class="form-group">
+          <label>Estado</label>
+          <select id="edit-status">
+            <option value="Inbox">Inbox</option>
+            <option value="Next Action">Next Action</option>
+            <option value="Delegated">Delegated</option>
+            <option value="Reevaluate">Reevaluate</option>
+            <option value="Completed">Completed</option>
+            <option value="Eliminated">Eliminated</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Fecha Límite</label>
+          <input type="date" id="edit-due">
+        </div>
+      </div>
+      <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px; margin-bottom: 10px;">
+        <div class="form-group">
+          <label>Hora Inicio</label>
+          <input type="time" id="edit-start">
+        </div>
+        <div class="form-group">
+          <label>Hora Fin</label>
+          <input type="time" id="edit-end">
+        </div>
+      </div>
+      <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px; margin-bottom: 10px;">
+        <div class="form-group">
+          <label>Proyecto</label>
+          <select id="edit-project"><option value="">(Sin Proyecto)</option></select>
+        </div>
+        <div class="form-group">
+          <label>Situación / Contexto</label>
+          <input type="text" id="edit-sit" placeholder="Ej: @Despacho" autocomplete="off" oninput="handleSitInput('edit')" onfocus="handleSitInput('edit')">
+          <div class="autocomplete-dropdown" id="edit-sit-dropdown"></div>
+        </div>
+      </div>
+      <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px; margin-bottom: 10px;">
+        <div class="form-group">
+          <label>Persona (Delegada o Por hablar)</label>
+          <input type="text" id="edit-person" placeholder="Ej: Francesco Russo" autocomplete="off" oninput="handlePersonInput('edit')" onfocus="handlePersonInput('edit')">
+          <div class="autocomplete-dropdown" id="edit-person-dropdown"></div>
+        </div>
+        <div class="form-group">
+          <label>Repetición / Frecuencia</label>
+          <select id="edit-recurrence">
+            <option value="none" selected>No se repite (Singular)</option>
+            <option value="daily">Diaria</option>
+            <option value="weekly">Semanal</option>
+            <option value="biweekly">Quincenal</option>
+            <option value="monthly">Mensual</option>
+            <option value="yearly">Anual</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group" style="margin-bottom: 14px;">
+        <label>Descripción / Notas</label>
+        <textarea id="edit-desc" rows="3"></textarea>
+      </div>
+      <div style="display:flex; justify-content: space-between;">
+        <button class="btn btn-secondary" style="color:var(--danger)" onclick="deleteCurrentTask()">Eliminar</button>
+        <div style="display:flex; gap:8px;">
+          <button class="btn btn-secondary" onclick="closeEditModal()">Cancelar</button>
+          <button class="btn btn-primary" onclick="saveTaskEdits()">Guardar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Proyecto (Crear / Editar) -->
+  <div class="modal-overlay" id="project-modal">
+    <div class="modal">
+      <h3 style="margin-bottom: 14px;" id="project-modal-title">Proyecto</h3>
+      <input type="hidden" id="proj-edit-id">
+      <div class="form-group" style="margin-bottom: 10px;">
+        <label>Nombre del Proyecto / Objetivo</label>
+        <input type="text" id="proj-name" placeholder="Ej: He escrito el Capítulo III de la tesis">
+      </div>
+      <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px; margin-bottom: 10px;">
+        <div class="form-group">
+          <label>Área de Responsabilidad</label>
+          <select id="proj-area"></select>
+        </div>
+        <div class="form-group">
+          <label>Estado del Proyecto</label>
+          <select id="proj-status">
+            <option value="Active" selected>Activo</option>
+            <option value="Inbox">Por planificar (Inbox)</option>
+            <option value="Paused">En pausa (Algún día / Tal vez)</option>
+            <option value="Completed">Completado</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group" style="margin-bottom: 10px;">
+        <label>Persona Asociada (opcional)</label>
+        <input type="text" id="proj-person" placeholder="Ej: Francesco Russo" autocomplete="off" oninput="handlePersonInput('proj')" onfocus="handlePersonInput('proj')">
+        <div class="autocomplete-dropdown" id="proj-person-dropdown"></div>
+      </div>
+      <div class="form-group" style="margin-bottom: 14px;">
+        <label>Notas / Criterio de Finalización</label>
+        <textarea id="proj-notes" rows="3" placeholder="Apuntes, resultado deseado o enlaces..."></textarea>
+      </div>
+      <div style="display:flex; justify-content: space-between;">
+        <button class="btn btn-secondary" id="proj-delete-btn" style="color:var(--danger); display:none;" onclick="deleteCurrentProject()">Eliminar</button>
+        <div style="display:flex; gap:8px; margin-left:auto;">
+          <button class="btn btn-secondary" onclick="closeProjectModal()">Cancelar</button>
+          <button class="btn btn-primary" onclick="saveProjectData()">Guardar Proyecto</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Nueva Área -->
+  <div class="modal-overlay" id="area-modal">
+    <div class="modal">
+      <h3 style="margin-bottom: 14px;">Nueva Área de Responsabilidad</h3>
+      <div class="form-group" style="margin-bottom: 14px;">
+        <label>Nombre del Área</label>
+        <input type="text" id="new-area-name" placeholder="Ej: DOCENCIA">
+      </div>
+      <div style="display:flex; justify-content: flex-end; gap:8px;">
+        <button class="btn btn-secondary" onclick="closeAreaModal()">Cancelar</button>
+        <button class="btn btn-primary" onclick="saveNewArea()">Crear Área</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Ajustes Generales -->
+  <div class="modal-overlay" id="settings-modal">
+    <div class="modal">
+      <h3 style="margin-bottom: 16px;">Configuración</h3>
+
+      <!-- Grupo 1: GitHub -->
+      <div class="settings-group">
+        <div class="settings-group-title">1. Sincronización GitHub</div>
+        <div class="form-group" style="margin-bottom: 8px;">
+          <label>Usuario de GitHub</label>
+          <input type="text" id="gh-owner" placeholder="Tu usuario">
+        </div>
+        <div class="form-group" style="margin-bottom: 8px;">
+          <label>Repositorio</label>
+          <input type="text" id="gh-repo" placeholder="mi-gtd">
+        </div>
+        <div class="form-group">
+          <label>Personal Access Token (permiso 'repo')</label>
+          <input type="password" id="gh-token" placeholder="ghp_xxxx">
+        </div>
+      </div>
+
+      <!-- Grupo 2: Gestión de Situaciones -->
+      <div class="settings-group">
+        <div class="settings-group-title">2. Gestión de Situaciones</div>
+        <div id="situations-manager-list" style="display:flex; flex-direction:column; gap:6px; max-height:160px; overflow-y:auto; padding-right:2px;"></div>
+      </div>
+
+      <!-- Grupo 3: Calendario -->
+      <div class="settings-group">
+        <div class="settings-group-title">3. Google Calendar (.ics)</div>
+        <p style="font-size:0.8rem; color:var(--text-muted); margin-bottom:8px;">
+          URL de suscripción para añadir en Google Calendar (Otros calendarios → Desde URL):
+        </p>
+        <div style="display:flex; gap:6px; margin-bottom:10px;">
+          <input type="text" id="cal-url-display" readonly style="font-size:0.8rem; background:var(--tag-bg); color:var(--text-muted);">
+          <button class="btn btn-secondary btn-sm" onclick="copyCalendarURL()">Copiar</button>
+        </div>
+        <button class="btn btn-secondary btn-sm" onclick="downloadICS()">Descargar archivo .ics manual</button>
+      </div>
+
+      <!-- Grupo 4: Backups & Mantenimiento -->
+      <div class="settings-group">
+        <div class="settings-group-title">4. Copias de Seguridad & Limpieza</div>
+        <div style="display:flex; flex-wrap:wrap; gap:8px;">
+          <button class="btn btn-secondary btn-sm" onclick="exportJSON()">Exportar Backup JSON</button>
+          <button class="btn btn-secondary btn-sm" onclick="triggerImport()">Importar Backup JSON</button>
+          <button class="btn btn-secondary btn-sm" style="color:var(--danger);" onclick="purgeCompletedTasks()">Limpiar Completadas</button>
+          <input type="file" id="import-file" style="display:none;" onchange="importJSON(event)">
+        </div>
+      </div>
+
+      <div style="display:flex; justify-content: flex-end; gap:8px; margin-top: 14px;">
+        <button class="btn btn-secondary" onclick="closeSettingsModal()">Cerrar</button>
+        <button class="btn btn-primary" onclick="saveSettings()">Guardar Ajustes</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let db = {
+      areas: ["TESIS", "PUSC", "Cavabianca", "MONTALBÁN", "RETAMAR", "FORMACIÓN", "PERSONAL"],
+      projects: [],
+      tasks: []
+    };
+    let currentTab = 'mem';
+    let memSubTab = 'today'; // 'today' | 'agenda'
+    let projectFilterStatus = 'Active'; // 'Active' | 'Paused' | 'Completed'
+    let reviewSubTab = 'weekly'; // 'weekly' | 'delegated' | 'reevaluate' | 'completed'
+    let filterSituation = '';
+    let selectedPerson = null;
+    let selectedProject = null;
+    let ghShaData = null;
+    let ghShaIcs = null;
+
+    // --- CODIFICACIÓN UTF-8 ---
+    function utf8ToBase64(str) {
+      const bytes = new TextEncoder().encode(str);
+      let bin = '';
+      for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+      return btoa(bin);
+    }
+
+    function base64ToUtf8(b64) {
+      const bin = atob(b64.replace(/\s/g, ''));
+      const bytes = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+      return new TextDecoder().decode(bytes);
+    }
+
+    // --- CONFIGURACIÓN Y SINCRONIZACIÓN ---
+    function getGHConfig() {
+      return {
+        owner: localStorage.getItem('gtd_owner') || '',
+        repo: localStorage.getItem('gtd_repo') || '',
+        token: localStorage.getItem('gtd_token') || ''
+      };
+    }
+
+    async function loadData() {
+      const local = localStorage.getItem('gtd_db');
+      if (local) {
+        try { 
+          db = JSON.parse(local);
+          // Garantizar campos por defecto
+          if (!db.projects) db.projects = [];
+          if (!db.tasks) db.tasks = [];
+          db.projects.forEach(p => { if (!p.status) p.status = 'Active'; });
+          db.tasks.forEach(t => { if (!t.recurrence) t.recurrence = 'none'; });
+        } catch(e){}
+      }
+      render();
+
+      const cfg = getGHConfig();
+      if (!cfg.token || !cfg.owner || !cfg.repo) {
+        updateSyncBadge('Sin Configurar', 'error');
+        return;
+      }
+
+      updateSyncBadge('Sincronizando...', 'syncing');
+      try {
+        const res = await fetch(`https://api.github.com/repos/${cfg.owner}/${cfg.repo}/contents/data.json`, {
+          headers: { 'Authorization': `token ${cfg.token}`, 'Accept': 'application/vnd.github.v3+json' }
+        });
+
+        if (res.status === 200) {
+          const json = await res.json();
+          ghShaData = json.sha;
+          db = JSON.parse(base64ToUtf8(json.content));
+          if (!db.projects) db.projects = [];
+          if (!db.tasks) db.tasks = [];
+          db.projects.forEach(p => { if (!p.status) p.status = 'Active'; });
+          db.tasks.forEach(t => { if (!t.recurrence) t.recurrence = 'none'; });
+          localStorage.setItem('gtd_db', JSON.stringify(db));
+          updateSyncBadge('Sincronizado', 'synced');
+          render();
+        } else if (res.status === 404) {
+          await persistData();
+        } else {
+          updateSyncBadge('Error Sync', 'error');
+        }
+
+        const resIcs = await fetch(`https://api.github.com/repos/${cfg.owner}/${cfg.repo}/contents/calendar.ics`, {
+          headers: { 'Authorization': `token ${cfg.token}`, 'Accept': 'application/vnd.github.v3+json' }
+        });
+        if (resIcs.status === 200) {
+          const icsJson = await resIcs.json();
+          ghShaIcs = icsJson.sha;
+        }
+      } catch (err) {
+        updateSyncBadge('Sin Conexión', 'error');
+      }
+    }
+
+    async function persistData() {
+      localStorage.setItem('gtd_db', JSON.stringify(db));
+      render();
+
+      const cfg = getGHConfig();
+      if (!cfg.token || !cfg.owner || !cfg.repo) return;
+
+      updateSyncBadge('Guardando...', 'syncing');
+      try {
+        const jsonContent = utf8ToBase64(JSON.stringify(db, null, 2));
+        const resData = await fetch(`https://api.github.com/repos/${cfg.owner}/${cfg.repo}/contents/data.json`, {
+          method: 'PUT',
+          headers: { 'Authorization': `token ${cfg.token}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message: "Update GTD data", content: jsonContent, sha: ghShaData || undefined })
+        });
+        if (resData.ok) {
+          const d = await resData.json();
+          ghShaData = d.content.sha;
+        }
+
+        const icsContent = utf8ToBase64(generateICS());
+        const resIcs = await fetch(`https://api.github.com/repos/${cfg.owner}/${cfg.repo}/contents/calendar.ics`, {
+          method: 'PUT',
+          headers: { 'Authorization': `token ${cfg.token}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message: "Update GTD Calendar feed", content: icsContent, sha: ghShaIcs || undefined })
+        });
+        if (resIcs.ok) {
+          const i = await resIcs.json();
+          ghShaIcs = i.content.sha;
+        }
+
+        updateSyncBadge('Sincronizado', 'synced');
+      } catch (e) {
+        updateSyncBadge('Sin Conexión', 'error');
+      }
+    }
+
+    function updateSyncBadge(text, cls) {
+      const el = document.getElementById('sync-status');
+      el.textContent = text;
+      el.className = 'status-badge ' + cls;
+    }
+
+    // --- CÁLCULO DE FECHAS RELATIVAS Y FORMATO ---
+    function getDaysDiff(dateStr, todayStr) {
+      const d1 = new Date(dateStr + 'T00:00:00');
+      const d2 = new Date(todayStr + 'T00:00:00');
+      return Math.round((d1 - d2) / 86400000);
+    }
+
+    function getRelativeDateLabel(days) {
+      if (days < -1) return `hace ${Math.abs(days)} días`;
+      if (days === -1) return 'ayer';
+      if (days === 0) return 'hoy';
+      if (days === 1) return 'mañana';
+      if (days < 30) return `en ${days} días`;
+      const months = Math.round(days / 30.5);
+      return months === 1 ? 'en 1 mes' : `en ${months} meses`;
+    }
+
+    function getMonthYearLabel(dateStr) {
+      const [y, m] = dateStr.split('-');
+      const d = new Date(y, parseInt(m) - 1, 1);
+      const str = d.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' });
+      return str.charAt(0).toUpperCase() + str.slice(1);
+    }
+
+    // --- REPETICIÓN A PARTIR DE FECHA DE INICIO ---
+    function advanceDate(dateStr, recurrence) {
+      if (!dateStr || !recurrence || recurrence === 'none') return dateStr;
+      const parts = dateStr.split('-').map(Number);
+      const y = parts[0], m = parts[1] - 1, d = parts[2];
+      let dt = new Date(y, m, d);
+
+      if (recurrence === 'daily') {
+        dt.setDate(dt.getDate() + 1);
+      } else if (recurrence === 'weekly') {
+        dt.setDate(dt.getDate() + 7);
+      } else if (recurrence === 'biweekly') {
+        dt.setDate(dt.getDate() + 14);
+      } else if (recurrence === 'monthly') {
+        let nextMonth = m + 1;
+        let nextYear = y;
+        if (nextMonth > 11) {
+          nextMonth = 0;
+          nextYear += 1;
+        }
+        const maxDays = new Date(nextYear, nextMonth + 1, 0).getDate();
+        const nextDay = Math.min(d, maxDays);
+        dt = new Date(nextYear, nextMonth, nextDay);
+      } else if (recurrence === 'yearly') {
+        const isLeapFeb29 = (m === 1 && d === 29);
+        if (isLeapFeb29) {
+          const isNextLeap = (y + 1) % 4 === 0 && ((y + 1) % 100 !== 0 || (y + 1) % 400 === 0);
+          dt = new Date(y + 1, 1, isNextLeap ? 29 : 28);
+        } else {
+          dt = new Date(y + 1, m, d);
+        }
+      }
+
+      const yyyy = dt.getFullYear();
+      const mm = String(dt.getMonth() + 1).padStart(2, '0');
+      const dd = String(dt.getDate()).padStart(2, '0');
+      return `${yyyy}-${mm}-${dd}`;
+    }
+
+    // --- FILTRADO DE PROYECTOS ACTIVOS ---
+    function isTaskProjectActive(t) {
+      if (!t.projectId) return true;
+      const p = db.projects.find(x => x.id === t.projectId);
+      if (!p) return true;
+      return p.status === 'Active';
+    }
+
+    // --- GENERADOR iCAL / .ICS ---
+    function computeEndTime(start) {
+      if (!start) return '';
+      const [h, m] = start.split(':').map(Number);
+      const endH = (h + 1) % 24;
+      return `${String(endH).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+    }
+
+    function generateICS() {
+      const activeTasksWithDate = db.tasks.filter(t => t.status !== 'Completed' && t.status !== 'Eliminated' && t.dueDate && isTaskProjectActive(t));
+      const nowStr = new Date().toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
+
+      let lines = [
+        'BEGIN:VCALENDAR',
+        'VERSION:2.0',
+        'PRODID:-//Mi GTD//ES',
+        'CALSCALE:GREGORIAN',
+        'METHOD:PUBLISH',
+        'X-WR-CALNAME:GTD Tareas'
+      ];
+
+      activeTasksWithDate.forEach(t => {
+        const dateClean = t.dueDate.replace(/-/g, '');
+        lines.push('BEGIN:VEVENT');
+        lines.push(`UID:${t.id}@migtd`);
+        lines.push(`DTSTAMP:${nowStr}`);
+        lines.push(`SUMMARY:${escapeICS(t.name)}`);
+        
+        let descParts = [];
+        const p = db.projects.find(x => x.id === t.projectId);
+        if (p) descParts.push(`Proyecto: ${p.name}`);
+        if (t.person) descParts.push(`Persona: ${t.person}`);
+        if (t.situation) descParts.push(`Situación: ${t.situation}`);
+        if (t.recurrence && t.recurrence !== 'none') descParts.push(`Repetición: ${t.recurrence}`);
+        if (t.description) descParts.push(t.description);
+        if (descParts.length > 0) lines.push(`DESCRIPTION:${escapeICS(descParts.join(' | '))}`);
+
+        if (t.startTime) {
+          const startClean = t.startTime.replace(/:/g, '') + '00';
+          const endVal = t.endTime || computeEndTime(t.startTime);
+          const endClean = endVal.replace(/:/g, '') + '00';
+          lines.push(`DTSTART:${dateClean}T${startClean}`);
+          lines.push(`DTEND:${dateClean}T${endClean}`);
+        } else {
+          lines.push(`DTSTART;VALUE=DATE:${dateClean}`);
+          const nextDay = new Date(t.dueDate);
+          nextDay.setDate(nextDay.getDate() + 1);
+          const nextDayClean = nextDay.toISOString().split('T')[0].replace(/-/g, '');
+          lines.push(`DTEND;VALUE=DATE:${nextDayClean}`);
+        }
+        lines.push('END:VEVENT');
+      });
+
+      lines.push('END:VCALENDAR');
+      return lines.join('\r\n');
+    }
+
+    function escapeICS(str) {
+      if (!str) return '';
+      return str.replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,').replace(/\n/g, '\\n');
+    }
+
+    // --- ENLACE DIRECTO GOOGLE CALENDAR ---
+    function openGoogleCalendarTemplate(id) {
+      const t = db.tasks.find(x => x.id === id);
+      if (!t || !t.dueDate) return;
+
+      const dateClean = t.dueDate.replace(/-/g, '');
+      let datesParam = '';
+      if (t.startTime) {
+        const startClean = t.startTime.replace(/:/g, '') + '00';
+        const endVal = t.endTime || computeEndTime(t.startTime);
+        const endClean = endVal.replace(/:/g, '') + '00';
+        datesParam = `${dateClean}T${startClean}/${dateClean}T${endClean}`;
+      } else {
+        const nextDay = new Date(t.dueDate);
+        nextDay.setDate(nextDay.getDate() + 1);
+        const nextClean = nextDay.toISOString().split('T')[0].replace(/-/g, '');
+        datesParam = `${dateClean}/${nextClean}`;
+      }
+
+      let desc = t.description || '';
+      if (t.person) desc = `[Persona: ${t.person}] ` + desc;
+
+      const url = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(t.name)}&dates=${datesParam}&details=${encodeURIComponent(desc)}`;
+      window.open(url, '_blank');
+    }
+
+    // --- AUTOCOMPLETADO DE SITUACIÓN ---
+    function getAllSituations() {
+      const set = new Set();
+      db.tasks.forEach(t => {
+        if (t.situation && t.situation.trim()) set.add(t.situation.trim());
+      });
+      return Array.from(set).sort();
+    }
+
+    function handleSitInput(target) {
+      const input = document.getElementById(target + '-sit');
+      const dropdown = document.getElementById(target + '-sit-dropdown');
+      const val = input.value.trim().toLowerCase();
+      const allSits = getAllSituations();
+
+      const filtered = allSits.filter(s => s.toLowerCase().includes(val));
+      const exactMatch = allSits.find(s => s.toLowerCase() === val);
+
+      let html = '';
+      if (filtered.length > 0) {
+        html += filtered.map(s => `
+          <div class="autocomplete-item" onmousedown="selectSituation('${target}', '${escapeHTML(s)}')">
+            <span>🏷️ ${escapeHTML(s)}</span>
+          </div>
+        `).join('');
+      }
+
+      if (val && !exactMatch) {
+        html += `
+          <div class="autocomplete-item create-new" onmousedown="selectSituation('${target}', '${escapeHTML(input.value.trim())}')">
+            <span>+ Crear etiqueta: "<strong>${escapeHTML(input.value.trim())}</strong>"</span>
+          </div>
+        `;
+      }
+
+      if (html) {
+        dropdown.innerHTML = html;
+        dropdown.classList.add('open');
+      } else {
+        dropdown.classList.remove('open');
+      }
+    }
+
+    function selectSituation(target, value) {
+      const input = document.getElementById(target + '-sit');
+      input.value = value;
+      document.getElementById(target + '-sit-dropdown').classList.remove('open');
+    }
+
+    // --- AUTOCOMPLETADO DE PERSONA ---
+    function getActivePersons() {
+      const set = new Set();
+      db.tasks.forEach(t => {
+        if (t.status !== 'Completed' && t.status !== 'Eliminated' && t.person && t.person.trim()) {
+          set.add(t.person.trim());
+        }
+      });
+      db.projects.forEach(p => {
+        if (p.status !== 'Completed' && p.person && p.person.trim()) {
+          set.add(p.person.trim());
+        }
+      });
+      return Array.from(set).sort((a,b) => a.localeCompare(b));
+    }
+
+    function getAllPersonsHistory() {
+      const set = new Set();
+      db.tasks.forEach(t => {
+        if (t.person && t.person.trim()) set.add(t.person.trim());
+      });
+      db.projects.forEach(p => {
+        if (p.person && p.person.trim()) set.add(p.person.trim());
+      });
+      return Array.from(set).sort((a,b) => a.localeCompare(b));
+    }
+
+    function handlePersonInput(target) {
+      const input = document.getElementById(target + '-person');
+      const dropdown = document.getElementById(target + '-person-dropdown');
+      const val = input.value.trim().toLowerCase();
+      const allPersons = getAllPersonsHistory();
+
+      const filtered = allPersons.filter(p => p.toLowerCase().includes(val));
+      const exactMatch = allPersons.find(p => p.toLowerCase() === val);
+
+      let html = '';
+      if (filtered.length > 0) {
+        html += filtered.map(p => `
+          <div class="autocomplete-item" onmousedown="selectPerson('${target}', '${escapeHTML(p)}')">
+            <span>👤 ${escapeHTML(p)}</span>
+          </div>
+        `).join('');
+      }
+
+      if (val && !exactMatch) {
+        html += `
+          <div class="autocomplete-item create-new" onmousedown="selectPerson('${target}', '${escapeHTML(input.value.trim())}')">
+            <span>+ Crear persona: "<strong>${escapeHTML(input.value.trim())}</strong>"</span>
+          </div>
+        `;
+      }
+
+      if (html) {
+        dropdown.innerHTML = html;
+        dropdown.classList.add('open');
+      } else {
+        dropdown.classList.remove('open');
+      }
+    }
+
+    function selectPerson(target, value) {
+      const input = document.getElementById(target + '-person');
+      input.value = value;
+      document.getElementById(target + '-person-dropdown').classList.remove('open');
+    }
+
+    document.addEventListener('click', (e) => {
+      if (!e.target.closest('.form-group')) {
+        document.querySelectorAll('.autocomplete-dropdown').forEach(d => d.classList.remove('open'));
+      }
+    });
+
+    // --- GESTIÓN DE SITUACIONES EN AJUSTES ---
+    function renderSettingsSituations() {
+      const list = document.getElementById('situations-manager-list');
+      if (!list) return;
+      const sits = getAllSituations();
+      if (sits.length === 0) {
+        list.innerHTML = '<p style="font-size:0.8rem; color:var(--text-muted);">No hay situaciones en uso.</p>';
+        return;
+      }
+      list.innerHTML = sits.map(s => `
+        <div style="display:flex; justify-content:space-between; align-items:center; background:var(--tag-bg); padding:6px 10px; border-radius:6px; font-size:0.85rem;">
+          <span>🏷️ <strong>${escapeHTML(s)}</strong></span>
+          <div style="display:flex; gap:6px;">
+            <button class="btn btn-secondary btn-sm" onclick="renameSituation(decodeURIComponent('${encodeURIComponent(s)}'))">Renombrar</button>
+            <button class="btn btn-secondary btn-sm" style="color:var(--danger)" onclick="deleteSituation(decodeURIComponent('${encodeURIComponent(s)}'))">Eliminar</button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function renameSituation(oldName) {
+      const newName = prompt(`Renombrar la situación "${oldName}" a:`, oldName);
+      if (!newName || newName.trim() === '' || newName.trim() === oldName) return;
+      const finalName = newName.trim();
+      db.tasks.forEach(t => {
+        if (t.situation === oldName) t.situation = finalName;
+      });
+      persistData();
+      renderSettingsSituations();
+    }
+
+    function deleteSituation(name) {
+      if (!confirm(`¿Eliminar la situación "${name}" de todas las tareas?`)) return;
+      db.tasks.forEach(t => {
+        if (t.situation === name) t.situation = null;
+      });
+      persistData();
+      renderSettingsSituations();
+    }
+
+    // --- GESTIÓN DE PERSONAS ---
+    function promptRenamePerson(oldName) {
+      const newName = prompt(`Renombrar o fusionar a "${oldName}" con:`, oldName);
+      if (!newName || newName.trim() === '' || newName.trim() === oldName) return;
+      const finalName = newName.trim();
+      db.tasks.forEach(t => {
+        if (t.person === oldName) t.person = finalName;
+      });
+      db.projects.forEach(p => {
+        if (p.person === oldName) p.person = finalName;
+      });
+      if (selectedPerson === oldName) selectedPerson = finalName;
+      persistData();
+    }
+
+    function promptClearPerson(personName) {
+      if (!confirm(`¿Desvincular a "${personName}" de todas sus tareas y proyectos?`)) return;
+      db.tasks.forEach(t => {
+        if (t.person === personName) t.person = null;
+      });
+      db.projects.forEach(p => {
+        if (p.person === personName) p.person = null;
+      });
+      selectedPerson = null;
+      persistData();
+    }
+
+    function goToPerson(personName) {
+      selectedPerson = personName;
+      switchTab('people');
+    }
+
+    function goToProject(projectId) {
+      selectedProject = projectId;
+      switchTab('projects');
+    }
+
+    // --- CAPTURA RÁPIDA (MODAL) ---
+    function openCaptureModal(defaultProjId = null) {
+      document.getElementById('capture-title').value = '';
+      document.getElementById('capture-due').value = '';
+      document.getElementById('capture-start').value = '';
+      document.getElementById('capture-end').value = '';
+      document.getElementById('capture-sit').value = '';
+      document.getElementById('capture-desc').value = '';
+      document.getElementById('capture-recurrence').value = 'none';
+      document.getElementById('capture-status').value = 'Inbox';
+
+      populateProjectSelects();
+      if (defaultProjId) {
+        document.getElementById('capture-project').value = defaultProjId;
+      } else if (currentTab === 'projects' && selectedProject) {
+        document.getElementById('capture-project').value = selectedProject;
+      } else {
+        document.getElementById('capture-project').value = '';
+      }
+
+      if (currentTab === 'people' && selectedPerson) {
+        document.getElementById('capture-person').value = selectedPerson;
+      } else {
+        document.getElementById('capture-person').value = '';
+      }
+
+      document.getElementById('capture-modal').classList.add('open');
+      setTimeout(() => document.getElementById('capture-title').focus(), 100);
+    }
+    function closeCaptureModal() {
+      document.getElementById('capture-modal').classList.remove('open');
+      document.querySelectorAll('.autocomplete-dropdown').forEach(d => d.classList.remove('open'));
+    }
+
+    function handleSaveCapture() {
+      const title = document.getElementById('capture-title').value.trim();
+      if (!title) return;
+
+      const due = document.getElementById('capture-due').value || null;
+      const start = document.getElementById('capture-start').value || null;
+      let end = document.getElementById('capture-end').value || null;
+      if (start && !end) end = computeEndTime(start);
+
+      const proj = document.getElementById('capture-project').value || null;
+      const sit = document.getElementById('capture-sit').value.trim() || null;
+      const person = document.getElementById('capture-person').value.trim() || null;
+      const status = document.getElementById('capture-status').value || 'Inbox';
+      const recurrence = document.getElementById('capture-recurrence').value || 'none';
+      const desc = document.getElementById('capture-desc').value.trim() || null;
+
+      db.tasks.unshift({
+        id: 't_' + Date.now(),
+        name: title,
+        status: status,
+        dueDate: due,
+        startTime: start,
+        endTime: end,
+        projectId: proj,
+        situation: sit,
+        person: person,
+        recurrence: recurrence,
+        description: desc
+      });
+
+      closeCaptureModal();
+      persistData();
+    }
+
+    // --- ACCIÓN COMPLETAR / TAREAS CÍCLICAS ---
+    function setTaskStatus(id, newStatus) {
+      const t = db.tasks.find(x => x.id === id);
+      if (!t) return;
+
+      const today = new Date().toISOString().split('T')[0];
+
+      if (newStatus === 'Completed' && t.recurrence && t.recurrence !== 'none') {
+        // Tarea cíclica: se repite a partir de la fecha de inicio/dueDate, no de compleción
+        const baseDate = t.dueDate || today;
+        const nextDate = advanceDate(baseDate, t.recurrence);
+
+        // Guardar una copia histórica como completada
+        const completedCopy = {
+          ...t,
+          id: 't_' + Date.now() + '_done',
+          status: 'Completed',
+          recurrence: 'none'
+        };
+
+        // Avanzar la tarea activa a su próxima fecha de inicio
+        t.dueDate = nextDate;
+        // Si estaba en Inbox la pasamos a Next Action o mantenemos activa
+        if (t.status === 'Inbox') t.status = 'Next Action';
+
+        db.tasks.unshift(completedCopy);
+        persistData();
+        return;
+      }
+
+      t.status = newStatus;
+      persistData();
+    }
+
+    // --- NAVEGACIÓN Y VISTAS ---
+    function switchTab(tab) {
+      currentTab = tab;
+      document.querySelectorAll('.nav-btn').forEach((btn, idx) => {
+        btn.classList.toggle('active', ['mem', 'inbox', 'next', 'projects', 'people', 'review'][idx] === tab);
+      });
+      render();
+    }
+
+    function setMemSubTab(sub) {
+      memSubTab = sub;
+      render();
+    }
+
+    function setSituationFilter(s) {
+      filterSituation = s;
+      render();
+    }
+
+    function render() {
+      populateProjectSelects();
+      const container = document.getElementById('app-content');
+      const today = new Date().toISOString().split('T')[0];
+
+      if (currentTab === 'mem') renderMEM(container, today);
+      else if (currentTab === 'inbox') renderInbox(container, today);
+      else if (currentTab === 'next') renderNextActions(container, today);
+      else if (currentTab === 'projects') renderProjects(container, today);
+      else if (currentTab === 'people') renderPeople(container, today);
+      else if (currentTab === 'review') renderReview(container, today);
+    }
+
+    // --- VISTA MEM (HOY Y AHORA / AGENDA HORIZONTE) ---
+    function renderMEM(container, today) {
+      const allSituations = getAllSituations();
+
+      let html = `
+        <div class="view-toggle">
+          <button class="${memSubTab === 'today' ? 'active' : ''}" onclick="setMemSubTab('today')">⚡ Hoy y Ahora</button>
+          <button class="${memSubTab === 'agenda' ? 'active' : ''}" onclick="setMemSubTab('agenda')">📅 Agenda Horizonte</button>
+        </div>
+        <div class="filter-bar">
+          <span class="filter-chip ${filterSituation === '' ? 'active' : ''}" onclick="setSituationFilter('')">Todas</span>
+          ${allSituations.map(s => `<span class="filter-chip ${filterSituation === s ? 'active' : ''}" onclick="setSituationFilter('${escapeHTML(s)}')">${escapeHTML(s)}</span>`).join('')}
+        </div>
+      `;
+
+      if (memSubTab === 'today') {
+        // Excluir tareas de proyectos en pausa o completados
+        const overdue = db.tasks.filter(t => t.status !== 'Completed' && t.status !== 'Eliminated' && t.dueDate && t.dueDate < today && isTaskProjectActive(t));
+        const dueToday = db.tasks.filter(t => t.status !== 'Completed' && t.status !== 'Eliminated' && t.dueDate === today && isTaskProjectActive(t));
+        let nextNoDate = db.tasks.filter(t => t.status === 'Next Action' && !t.dueDate && isTaskProjectActive(t));
+        const nextWeek = new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0];
+        const upcoming = db.tasks.filter(t => t.status !== 'Completed' && t.status !== 'Eliminated' && t.dueDate && t.dueDate > today && t.dueDate <= nextWeek && isTaskProjectActive(t));
+
+        if (filterSituation) {
+          nextNoDate = nextNoDate.filter(t => t.situation === filterSituation);
+        }
+
+        if (overdue.length > 0) {
+          html += `<div class="section-title" style="color:var(--danger)">⚠️ Vencidas (${overdue.length})</div>`;
+          html += overdue.map(t => renderTaskCard(t, today)).join('');
+        }
+
+        html += `<div class="section-title">Para Hoy (${dueToday.length})</div>`;
+        html += dueToday.length === 0 ? `<p style="color:var(--text-muted); font-size:0.85rem;">Sin compromisos para hoy.</p>` : dueToday.map(t => renderTaskCard(t, today)).join('');
+
+        html += `<div class="section-title">Siguientes Acciones Disponibles (${nextNoDate.length})</div>`;
+        html += nextNoDate.length === 0 ? `<p style="color:var(--text-muted); font-size:0.85rem;">Sin acciones en este contexto.</p>` : nextNoDate.map(t => renderTaskCard(t, today)).join('');
+
+        html += `
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-top:24px;">
+            <span class="section-title" style="margin:0;">Próximos 7 días (${upcoming.length})</span>
+            <button class="btn btn-secondary btn-sm" onclick="setMemSubTab('agenda')">Ver Agenda Completa →</button>
+          </div>
+        `;
+        html += upcoming.length === 0 ? `<p style="color:var(--text-muted); font-size:0.85rem; margin-top:8px;">Sin compromisos cercanos.</p>` : upcoming.sort((a,b) => a.dueDate.localeCompare(b.dueDate)).map(t => renderTaskCard(t, today)).join('');
+
+      } else {
+        // Agenda Horizonte
+        let datedTasks = db.tasks.filter(t => t.status !== 'Completed' && t.status !== 'Eliminated' && t.dueDate && isTaskProjectActive(t));
+        if (filterSituation) {
+          datedTasks = datedTasks.filter(t => t.situation === filterSituation);
+        }
+        datedTasks.sort((a,b) => a.dueDate.localeCompare(b.dueDate));
+
+        const overdue = datedTasks.filter(t => getDaysDiff(t.dueDate, today) < 0);
+        const todayTasks = datedTasks.filter(t => getDaysDiff(t.dueDate, today) === 0);
+        const thisWeek = datedTasks.filter(t => { const d = getDaysDiff(t.dueDate, today); return d >= 1 && d <= 7; });
+        const nextWeeks = datedTasks.filter(t => { const d = getDaysDiff(t.dueDate, today); return d > 7 && d <= 30; });
+        const futureTasks = datedTasks.filter(t => getDaysDiff(t.dueDate, today) > 30);
+
+        if (datedTasks.length === 0) {
+          html += `<p style="color:var(--text-muted); font-size:0.9rem; margin-top:20px;">No hay tareas programadas con fecha límite.</p>`;
+        }
+
+        if (overdue.length > 0) {
+          html += `<div class="section-title" style="color:var(--danger)">⚠️ Vencidas (${overdue.length})</div>`;
+          html += overdue.map(t => renderTaskCard(t, today, true)).join('');
+        }
+
+        if (todayTasks.length > 0) {
+          html += `<div class="section-title">Para Hoy (${todayTasks.length})</div>`;
+          html += todayTasks.map(t => renderTaskCard(t, today, true)).join('');
+        }
+
+        if (thisWeek.length > 0) {
+          html += `<div class="section-title">Esta Semana (Próximos 7 días) (${thisWeek.length})</div>`;
+          html += thisWeek.map(t => renderTaskCard(t, today, true)).join('');
+        }
+
+        if (nextWeeks.length > 0) {
+          html += `<div class="section-title">Próximas 2 a 4 semanas (${nextWeeks.length})</div>`;
+          html += nextWeeks.map(t => renderTaskCard(t, today, true)).join('');
+        }
+
+        if (futureTasks.length > 0) {
+          const monthGroups = {};
+          futureTasks.forEach(t => {
+            const label = getMonthYearLabel(t.dueDate);
+            if (!monthGroups[label]) monthGroups[label] = [];
+            monthGroups[label].push(t);
+          });
+
+          Object.keys(monthGroups).forEach(monthLabel => {
+            html += `<div class="section-title" style="color:var(--primary);">${monthLabel} (${monthGroups[monthLabel].length})</div>`;
+            html += monthGroups[monthLabel].map(t => renderTaskCard(t, today, true)).join('');
+          });
+        }
+      }
+
+      container.innerHTML = html;
+    }
+
+    // --- VISTA NEXT ACTIONS (CON FILTRO DE SITUACIÓN) ---
+    function renderNextActions(container, today) {
+      let nextTasks = db.tasks.filter(t => t.status === 'Next Action' && isTaskProjectActive(t));
+      const allSituations = getAllSituations();
+
+      if (filterSituation) {
+        nextTasks = nextTasks.filter(t => t.situation === filterSituation);
+      }
+
+      let html = `
+        <div class="filter-bar">
+          <span class="filter-chip ${filterSituation === '' ? 'active' : ''}" onclick="setSituationFilter('')">Todas</span>
+          ${allSituations.map(s => `<span class="filter-chip ${filterSituation === s ? 'active' : ''}" onclick="setSituationFilter('${escapeHTML(s)}')">${escapeHTML(s)}</span>`).join('')}
+        </div>
+        <div class="section-title">Next Actions ${filterSituation ? `— ${escapeHTML(filterSituation)}` : ''} (${nextTasks.length})</div>
+      `;
+      html += nextTasks.length === 0 ? `<p style="color:var(--text-muted); font-size:0.9rem;">No hay acciones activas${filterSituation ? ' para este contexto' : ''}.</p>` : nextTasks.map(t => renderTaskCard(t, today)).join('');
+      container.innerHTML = html;
+    }
+
+    function renderInbox(container, today) {
+      const inboxTasks = db.tasks.filter(t => t.status === 'Inbox');
+      let html = `<div class="section-title">Bandeja de Entrada (${inboxTasks.length})</div>`;
+      html += inboxTasks.length === 0 ? `<p style="color:var(--text-muted); font-size:0.9rem;">Bandeja limpia.</p>` : inboxTasks.map(t => renderTaskCard(t, today)).join('');
+      container.innerHTML = html;
+    }
+
+    // --- VISTA PROYECTOS (LISTA + DETALLE COMPLETO) ---
+    function renderProjects(container, today) {
+      // 1. Vista de DETALLE de un Proyecto concreto
+      if (selectedProject) {
+        const p = db.projects.find(x => x.id === selectedProject);
+        if (!p) {
+          selectedProject = null;
+          render();
+          return;
+        }
+
+        const projectTasks = db.tasks.filter(t => t.projectId === p.id && t.status !== 'Eliminated');
+        const nextActions = projectTasks.filter(t => t.status === 'Next Action');
+        const delegated = projectTasks.filter(t => t.status === 'Delegated');
+        const inbox = projectTasks.filter(t => t.status === 'Inbox');
+        const reevaluate = projectTasks.filter(t => t.status === 'Reevaluate');
+        const completed = projectTasks.filter(t => t.status === 'Completed');
+
+        let statusClass = 'tag-status-active';
+        let statusLabel = 'Activo';
+        if (p.status === 'Paused') { statusClass = 'tag-status-paused'; statusLabel = 'En pausa'; }
+        else if (p.status === 'Inbox') { statusClass = 'tag-status-inbox'; statusLabel = 'Inbox'; }
+        else if (p.status === 'Completed') { statusClass = 'tag-status-completed'; statusLabel = 'Completado'; }
+
+        let html = `
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+            <button class="btn btn-secondary btn-sm" onclick="selectedProject = null; render();">← Volver a Proyectos</button>
+            <div style="display:flex; gap:6px;">
+              <button class="btn btn-secondary btn-sm" onclick="openEditProjectModal('${p.id}')">Editar Proyecto</button>
+              <button class="btn btn-primary btn-sm" onclick="openCaptureModal('${p.id}')">+ Acción</button>
+            </div>
+          </div>
+          <div style="background:var(--surface); border:1px solid var(--border-light); border-radius:var(--radius); padding:16px; margin-bottom:16px;">
+            <h2 style="font-size:1.25rem; font-weight:700; margin-bottom:8px;">📁 ${escapeHTML(p.name)}</h2>
+            <div style="display:flex; flex-wrap:wrap; gap:6px; align-items:center;">
+              <span class="tag ${statusClass}">${statusLabel}</span>
+              <span class="tag" style="font-weight:600;">Área: ${escapeHTML(p.area)}</span>
+              ${p.person ? `<span class="tag tag-person" onclick="goToPerson(decodeURIComponent('${encodeURIComponent(p.person)}'))">👤 ${escapeHTML(p.person)}</span>` : ''}
+            </div>
+            ${p.notes ? `<div style="margin-top:12px; font-size:0.85rem; color:var(--text); white-space:pre-wrap; border-top:1px solid var(--border-light); padding-top:8px;">${escapeHTML(p.notes)}</div>` : ''}
+          </div>
+        `;
+
+        html += `<div class="section-title" style="color:var(--primary);">🎯 Siguientes Acciones (${nextActions.length})</div>`;
+        html += nextActions.length === 0 ? `<p style="color:var(--text-muted); font-size:0.85rem;">No hay siguientes acciones definidas.</p>` : nextActions.map(t => renderTaskCard(t, today)).join('');
+
+        if (delegated.length > 0) {
+          html += `<div class="section-title" style="color:var(--warning-text);">⏳ Delegadas (${delegated.length})</div>`;
+          html += delegated.map(t => renderTaskCard(t, today)).join('');
+        }
+
+        if (inbox.length > 0) {
+          html += `<div class="section-title">📥 Por Procesar (Inbox) (${inbox.length})</div>`;
+          html += inbox.map(t => renderTaskCard(t, today)).join('');
+        }
+
+        if (reevaluate.length > 0) {
+          html += `<div class="section-title">💤 Reevaluar / Algún día (${reevaluate.length})</div>`;
+          html += reevaluate.map(t => renderTaskCard(t, today)).join('');
+        }
+
+        if (completed.length > 0) {
+          html += `<div class="section-title" style="color:var(--success);">✓ Completadas (${completed.length})</div>`;
+          html += completed.map(t => renderTaskCard(t, today)).join('');
+        }
+
+        container.innerHTML = html;
+        return;
+      }
+
+      // 2. Vista de DIRECTORIO de Proyectos
+      let html = `
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+          <h2 style="font-size:1.1rem; font-weight:700;">Áreas y Proyectos</h2>
+          <div style="display:flex; gap:6px;">
+            <button class="btn btn-secondary btn-sm" onclick="openAreaModal()">+ Área</button>
+            <button class="btn btn-primary btn-sm" onclick="openCreateProjectModal()">+ Proyecto</button>
+          </div>
+        </div>
+        <div class="view-toggle">
+          <button class="${projectFilterStatus === 'Active' ? 'active' : ''}" onclick="projectFilterStatus = 'Active'; render();">Activos</button>
+          <button class="${projectFilterStatus === 'Paused' ? 'active' : ''}" onclick="projectFilterStatus = 'Paused'; render();">Inbox / En Pausa</button>
+          <button class="${projectFilterStatus === 'Completed' ? 'active' : ''}" onclick="projectFilterStatus = 'Completed'; render();">Completados</button>
+        </div>
+      `;
+
+      db.areas.forEach(area => {
+        let areaProjects = db.projects.filter(p => p.area === area);
+        if (projectFilterStatus === 'Active') {
+          areaProjects = areaProjects.filter(p => p.status === 'Active');
+        } else if (projectFilterStatus === 'Paused') {
+          areaProjects = areaProjects.filter(p => p.status === 'Paused' || p.status === 'Inbox');
+        } else if (projectFilterStatus === 'Completed') {
+          areaProjects = areaProjects.filter(p => p.status === 'Completed');
+        }
+
+        if (areaProjects.length === 0 && projectFilterStatus !== 'Active') return;
+
+        html += `
+          <div style="margin-top:20px;">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <span class="section-title" style="margin:0;">${escapeHTML(area)}</span>
+              <button class="btn btn-secondary btn-sm" style="font-size:0.7rem; padding:2px 8px; color:var(--danger)" onclick="deleteArea('${escapeHTML(area)}')">Eliminar Área</button>
+            </div>
+        `;
+
+        if (areaProjects.length === 0) {
+          html += `<p style="font-size:0.8rem; color:var(--text-muted); margin: 6px 0;">Sin proyectos ${projectFilterStatus === 'Active' ? 'activos' : ''}.</p>`;
+        } else {
+          areaProjects.forEach(p => {
+            const pendingTasks = db.tasks.filter(t => t.projectId === p.id && t.status !== 'Completed' && t.status !== 'Eliminated').length;
+            const nextCount = db.tasks.filter(t => t.projectId === p.id && t.status === 'Next Action').length;
+
+            let statusBadge = '';
+            if (p.status === 'Paused') statusBadge = `<span class="tag tag-status-paused" style="margin-left:6px;">En pausa</span>`;
+            else if (p.status === 'Inbox') statusBadge = `<span class="tag tag-status-inbox" style="margin-left:6px;">Inbox</span>`;
+            else if (p.status === 'Completed') statusBadge = `<span class="tag tag-status-completed" style="margin-left:6px;">Completado</span>`;
+
+            html += `
+              <div class="task-card" style="margin-top:6px; cursor:pointer;" onclick="goToProject('${p.id}')">
+                <div class="task-row">
+                  <div>
+                    <strong style="font-size:0.95rem;">📁 ${escapeHTML(p.name)}</strong>
+                    ${statusBadge}
+                    <div style="font-size:0.75rem; color:var(--text-muted); margin-top:4px;">
+                      <span>${pendingTasks} acciones pendientes (${nextCount} Next Actions)</span>
+                      ${p.person ? ` • <span style="color:#166534; font-weight:600;">👤 ${escapeHTML(p.person)}</span>` : ''}
+                    </div>
+                  </div>
+                  <button class="btn btn-secondary btn-sm" onclick="event.stopPropagation(); openEditProjectModal('${p.id}')">Editar</button>
+                </div>
+              </div>
+            `;
+          });
+        }
+        html += `</div>`;
+      });
+
+      container.innerHTML = html;
+    }
+
+    // --- VISTA PERSONAS / AGENDA 1 A 1 ---
+    function renderPeople(container, today) {
+      const activePersons = getActivePersons();
+
+      if (selectedPerson && !activePersons.includes(selectedPerson)) {
+        selectedPerson = null;
+      }
+
+      if (selectedPerson) {
+        const personTasks = db.tasks.filter(t => t.person === selectedPerson && t.status !== 'Completed' && t.status !== 'Eliminated');
+        const toDiscuss = personTasks.filter(t => t.status === 'Next Action');
+        const waitingFor = personTasks.filter(t => t.status === 'Delegated');
+        const otherTasks = personTasks.filter(t => t.status !== 'Next Action' && t.status !== 'Delegated');
+
+        // Proyectos en común con esta persona
+        const sharedProjects = db.projects.filter(p => p.person === selectedPerson && p.status !== 'Completed');
+
+        let html = `
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+            <button class="btn btn-secondary btn-sm" onclick="selectedPerson = null; render();">← Volver a lista</button>
+            <div style="display:flex; gap:6px;">
+              <button class="btn btn-secondary btn-sm" onclick="promptRenamePerson(decodeURIComponent('${encodeURIComponent(selectedPerson)}'))">Renombrar / Unir</button>
+              <button class="btn btn-secondary btn-sm" style="color:var(--danger);" onclick="promptClearPerson(decodeURIComponent('${encodeURIComponent(selectedPerson)}'))">Desvincular</button>
+            </div>
+          </div>
+          <h2 style="font-size:1.2rem; font-weight:700; margin-bottom:6px;">👤 ${escapeHTML(selectedPerson)}</h2>
+          <p style="font-size:0.8rem; color:var(--text-muted); margin-bottom:16px;">Agenda 1 a 1 (${personTasks.length} tareas pendientes, ${sharedProjects.length} proyectos en común)</p>
+        `;
+
+        if (sharedProjects.length > 0) {
+          html += `<div class="section-title" style="color:#0369a1;">📁 Proyectos en común (${sharedProjects.length})</div>`;
+          html += sharedProjects.map(p => `
+            <div class="task-card" style="cursor:pointer;" onclick="goToProject('${p.id}')">
+              <div class="task-row">
+                <div>
+                  <strong>📁 ${escapeHTML(p.name)}</strong>
+                  <span class="tag" style="margin-left:6px;">${p.area}</span>
+                  <span class="tag tag-status-active" style="margin-left:4px;">${p.status}</span>
+                </div>
+                <span style="font-size:0.75rem; color:var(--primary); font-weight:600;">Ver Proyecto →</span>
+              </div>
+            </div>
+          `).join('');
+        }
+
+        html += `<div class="section-title" style="color:var(--primary);">🎯 Por Tratar con él/ella (${toDiscuss.length})</div>`;
+        html += toDiscuss.length === 0 ? `<p style="color:var(--text-muted); font-size:0.85rem;">Sin puntos de agenda pendientes.</p>` : toDiscuss.map(t => renderTaskCard(t, today)).join('');
+
+        html += `<div class="section-title" style="color:var(--warning-text);">⏳ Esperando de él/ella / Delegadas (${waitingFor.length})</div>`;
+        html += waitingFor.length === 0 ? `<p style="color:var(--text-muted); font-size:0.85rem;">No tienes nada delegado a esta persona.</p>` : waitingFor.map(t => renderTaskCard(t, today)).join('');
+
+        if (otherTasks.length > 0) {
+          html += `<div class="section-title">Otras / Inbox (${otherTasks.length})</div>`;
+          html += otherTasks.map(t => renderTaskCard(t, today)).join('');
+        }
+
+        container.innerHTML = html;
+        return;
+      }
+
+      let html = `
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+          <h2 style="font-size:1.1rem; font-weight:700;">Agendas 1 a 1 (Personas)</h2>
+        </div>
+        <p style="font-size:0.8rem; color:var(--text-muted); margin-bottom:14px;">
+          Personas con tareas pendientes o proyectos activos. Desaparecen automáticamente cuando todo está completado.
+        </p>
+      `;
+
+      if (activePersons.length === 0) {
+        html += `<p style="color:var(--text-muted); font-size:0.9rem; margin-top:20px;">No hay personas con compromisos activos actualmente.</p>`;
+      } else {
+        html += activePersons.map(person => {
+          const tasks = db.tasks.filter(t => t.person === person && t.status !== 'Completed' && t.status !== 'Eliminated');
+          const discussCount = tasks.filter(t => t.status === 'Next Action').length;
+          const waitCount = tasks.filter(t => t.status === 'Delegated').length;
+          const projCount = db.projects.filter(p => p.person === person && p.status !== 'Completed').length;
+
+          return `
+            <div class="task-card" style="cursor:pointer;" onclick="goToPerson(decodeURIComponent('${encodeURIComponent(person)}'))">
+              <div class="task-row">
+                <div>
+                  <strong style="font-size:1rem;">👤 ${escapeHTML(person)}</strong>
+                  <div style="font-size:0.75rem; color:var(--text-muted); margin-top:4px;">
+                    ${discussCount > 0 ? `<span style="color:var(--primary); font-weight:600;">${discussCount} por tratar</span>` : ''}
+                    ${discussCount > 0 && waitCount > 0 ? ' • ' : ''}
+                    ${waitCount > 0 ? `<span style="color:var(--warning-text); font-weight:600;">${waitCount} esperando</span>` : ''}
+                    ${projCount > 0 ? ` • <span style="color:#0369a1; font-weight:600;">${projCount} proyectos</span>` : ''}
+                  </div>
+                </div>
+                <button class="btn btn-secondary btn-sm" onclick="event.stopPropagation(); promptRenamePerson(decodeURIComponent('${encodeURIComponent(person)}'))">Renombrar / Unir</button>
+              </div>
+            </div>
+          `;
+        }).join('');
+      }
+
+      container.innerHTML = html;
+    }
+
+    // --- VISTA REVISIÓN Y MANTENIMIENTO GTD ---
+    function renderReview(container, today) {
+      let html = `
+        <h2 style="font-size:1.1rem; font-weight:700; margin-bottom:12px;">Mantenimiento y Revisión GTD</h2>
+        <div class="view-toggle">
+          <button class="${reviewSubTab === 'weekly' ? 'active' : ''}" onclick="reviewSubTab = 'weekly'; render();">⚡ Revisión Semanal</button>
+          <button class="${reviewSubTab === 'delegated' ? 'active' : ''}" onclick="reviewSubTab = 'delegated'; render();">⏳ Delegadas</button>
+          <button class="${reviewSubTab === 'reevaluate' ? 'active' : ''}" onclick="reviewSubTab = 'reevaluate'; render();">💤 Incubadora</button>
+          <button class="${reviewSubTab === 'completed' ? 'active' : ''}" onclick="reviewSubTab = 'completed'; render();">✓ Historial</button>
+        </div>
+      `;
+
+      if (reviewSubTab === 'weekly') {
+        // 1. Alerta de Proyectos Encallados (Stalled Projects)
+        const activeProjects = db.projects.filter(p => p.status === 'Active');
+        const stalledProjects = activeProjects.filter(p => {
+          const hasNextAction = db.tasks.some(t => t.projectId === p.id && t.status === 'Next Action');
+          return !hasNextAction;
+        });
+
+        if (stalledProjects.length > 0) {
+          html += `
+            <div style="background:#fffbeb; border:1px solid #fde68a; border-radius:var(--radius); padding:12px; margin-bottom:16px;">
+              <strong style="color:#92400e; font-size:0.9rem;">⚠️ Proyectos Encallados (${stalledProjects.length})</strong>
+              <p style="font-size:0.75rem; color:#b45309; margin:4px 0 10px;">
+                Estos proyectos están activos pero no tienen ninguna <strong>Next Action</strong> definida. Asígnale una acción para que avancen:
+              </p>
+              ${stalledProjects.map(p => `
+                <div style="display:flex; justify-content:space-between; align-items:center; background:#fff; padding:6px 10px; border-radius:6px; margin-bottom:6px; border:1px solid #fef3c7;">
+                  <span style="font-size:0.85rem; font-weight:600; cursor:pointer;" onclick="goToProject('${p.id}')">📁 ${escapeHTML(p.name)}</span>
+                  <button class="btn btn-primary btn-sm" onclick="openCaptureModal('${p.id}')">+ Siguiente Acción</button>
+                </div>
+              `).join('')}
+            </div>
+          `;
+        } else {
+          html += `
+            <div style="background:var(--success-bg); border:1px solid #bbf7d0; border-radius:var(--radius); padding:10px 14px; margin-bottom:16px; color:#166534; font-size:0.85rem; font-weight:600;">
+              ✨ ¡Excelente! Todos tus proyectos activos tienen al menos una Siguiente Acción definida.
+            </div>
+          `;
+        }
+
+        // 2. Checklist interactivo de Revisión Semanal
+        const defaultChecklist = [
+          { id: 'c1', text: 'Despejar la mente: recopilar notas sueltas, papeles o ideas al Inbox.' },
+          { id: 'c2', text: 'Procesar Inbox a Cero: clarificar cada tarea nueva (Next Action, Delegada o Incubadora).' },
+          { id: 'c3', text: 'Revisar la Agenda Horizonte: anticipar entregas, ponencias o viajes del próximo mes.' },
+          { id: 'c4', text: 'Repasar la lista de Esperando / Delegadas y reclamar lo pendiente.' },
+          { id: 'c5', text: 'Revisar proyectos activos y asegurar que no haya proyectos encallados.' },
+          { id: 'c6', text: 'Revisar proyectos en pausa / Algún día y reactivar o archivar lo necesario.' },
+          { id: 'c7', text: 'Revisar Agendas de Personas para próximas reuniones o tutorías.' }
+        ];
+
+        let checklistState = {};
+        try {
+          checklistState = JSON.parse(localStorage.getItem('gtd_review_checklist') || '{}');
+        } catch(e){}
+
+        html += `
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-top:20px;">
+            <span class="section-title" style="margin:0;">Checklist de Revisión Semanal</span>
+            <button class="btn btn-secondary btn-sm" onclick="resetReviewChecklist()">Reiniciar Checklist</button>
+          </div>
+          <div style="margin-top:10px;">
+            ${defaultChecklist.map(item => `
+              <div class="checklist-item ${checklistState[item.id] ? 'done' : ''}">
+                <input type="checkbox" id="${item.id}" ${checklistState[item.id] ? 'checked' : ''} onchange="toggleChecklistItem('${item.id}', this.checked)">
+                <label for="${item.id}" style="font-size:0.85rem; cursor:pointer;">${item.text}</label>
+              </div>
+            `).join('')}
+          </div>
+        `;
+
+      } else if (reviewSubTab === 'delegated') {
+        const delegated = db.tasks.filter(t => t.status === 'Delegated');
+        html += `<div class="section-title">En Espera / Delegadas (${delegated.length})</div>`;
+        html += delegated.length === 0 ? `<p style="color:var(--text-muted); font-size:0.85rem;">Sin elementos delegados.</p>` : delegated.map(t => renderTaskCard(t, today)).join('');
+
+      } else if (reviewSubTab === 'reevaluate') {
+        const reevaluate = db.tasks.filter(t => t.status === 'Reevaluate');
+        html += `<div class="section-title">Incubadora / Reevaluar (${reevaluate.length})</div>`;
+        html += reevaluate.length === 0 ? `<p style="color:var(--text-muted); font-size:0.85rem;">Nada que reevaluar.</p>` : reevaluate.map(t => renderTaskCard(t, today)).join('');
+
+      } else if (reviewSubTab === 'completed') {
+        const completed = db.tasks.filter(t => t.status === 'Completed').slice(0, 30);
+        html += `<div class="section-title">Historial Reciente de Completadas (${completed.length})</div>`;
+        html += completed.length === 0 ? `<p style="color:var(--text-muted); font-size:0.85rem;">Sin tareas completadas aún.</p>` : completed.map(t => renderTaskCard(t, today)).join('');
+      }
+
+      container.innerHTML = html;
+    }
+
+    function toggleChecklistItem(id, isChecked) {
+      let state = {};
+      try { state = JSON.parse(localStorage.getItem('gtd_review_checklist') || '{}'); } catch(e){}
+      state[id] = isChecked;
+      localStorage.setItem('gtd_review_checklist', JSON.stringify(state));
+      render();
+    }
+
+    function resetReviewChecklist() {
+      if (confirm("¿Reiniciar el checklist para la revisión de esta semana?")) {
+        localStorage.removeItem('gtd_review_checklist');
+        render();
+      }
+    }
+
+    function purgeCompletedTasks() {
+      const completedCount = db.tasks.filter(t => t.status === 'Completed').length;
+      if (completedCount === 0) {
+        alert("No hay tareas completadas para limpiar.");
+        return;
+      }
+      if (confirm(`¿Eliminar definitivamente las ${completedCount} tareas completadas para optimizar espacio?`)) {
+        db.tasks = db.tasks.filter(t => t.status !== 'Completed');
+        persistData();
+        alert("Limpieza completada con éxito.");
+      }
+    }
+
+    // --- TARJETA DE TAREA UNIFICADA ---
+    function renderTaskCard(t, today, showRelativeDate = false) {
+      const proj = db.projects.find(p => p.id === t.projectId);
+      const isOverdue = t.dueDate && t.dueDate < today && t.status !== 'Completed';
+      const timeStr = t.startTime ? ` | ⏰ ${t.startTime}${t.endTime ? '-' + t.endTime : ''}` : '';
+      
+      let relativeTag = '';
+      if (t.dueDate) {
+        const diff = getDaysDiff(t.dueDate, today);
+        const relLabel = getRelativeDateLabel(diff);
+        relativeTag = `<span class="tag tag-due ${isOverdue ? 'overdue' : ''}">📅 ${t.dueDate}${timeStr} (${relLabel})</span>`;
+      }
+
+      let repeatBadge = '';
+      if (t.recurrence && t.recurrence !== 'none') {
+        const repeatLabels = { daily: 'Diaria', weekly: 'Semanal', biweekly: 'Quincenal', monthly: 'Mensual', yearly: 'Anual' };
+        repeatBadge = `<span class="tag tag-repeat">🔁 ${repeatLabels[t.recurrence] || t.recurrence}</span>`;
+      }
+
+      return `
+        <div class="task-card">
+          <div class="task-row">
+            <span class="task-title" onclick="openEditModal('${t.id}')">${escapeHTML(t.name)}</span>
+            ${t.status !== 'Completed' ? `<button class="btn btn-secondary btn-sm" title="Completar" onclick="setTaskStatus('${t.id}', 'Completed')">✓</button>` : ''}
+          </div>
+          <div class="task-meta">
+            ${t.status !== 'Next Action' && t.status !== 'Inbox' ? `<span class="tag">${t.status}</span>` : ''}
+            ${relativeTag}
+            ${repeatBadge}
+            ${proj ? `<span class="tag tag-project" onclick="event.stopPropagation(); goToProject('${proj.id}')" title="Ver proyecto">📁 ${escapeHTML(proj.name)}</span>` : ''}
+            ${t.situation ? `<span class="tag tag-sit">🏷️ ${escapeHTML(t.situation)}</span>` : ''}
+            ${t.person ? `<span class="tag tag-person" onclick="event.stopPropagation(); goToPerson(decodeURIComponent('${encodeURIComponent(t.person)}'))" title="Ver agenda 1 a 1">👤 ${escapeHTML(t.person)}</span>` : ''}
+          </div>
+          ${t.description ? `<p style="font-size:0.8rem; color:var(--text-muted);">${escapeHTML(t.description)}</p>` : ''}
+          <div class="task-actions">
+            ${t.dueDate ? `<button class="btn btn-secondary btn-sm" onclick="openGoogleCalendarTemplate('${t.id}')" title="Añadir a Google Calendar">+ Cal</button>` : ''}
+            ${t.status === 'Inbox' ? `<button class="btn btn-secondary btn-sm" onclick="setTaskStatus('${t.id}', 'Next Action')">Mover a Next Action</button>` : ''}
+            <button class="btn btn-secondary btn-sm" onclick="openEditModal('${t.id}')">Editar</button>
+          </div>
+        </div>
+      `;
+    }
+
+    // --- MODALES AUXILIARES ---
+    function openEditModal(id) {
+      const t = db.tasks.find(x => x.id === id);
+      if (!t) return;
+      document.getElementById('edit-id').value = t.id;
+      document.getElementById('edit-title').value = t.name;
+      document.getElementById('edit-status').value = t.status;
+      document.getElementById('edit-due').value = t.dueDate || '';
+      document.getElementById('edit-start').value = t.startTime || '';
+      document.getElementById('edit-end').value = t.endTime || '';
+      document.getElementById('edit-project').value = t.projectId || '';
+      document.getElementById('edit-sit').value = t.situation || '';
+      document.getElementById('edit-person').value = t.person || '';
+      document.getElementById('edit-recurrence').value = t.recurrence || 'none';
+      document.getElementById('edit-desc').value = t.description || '';
+      document.getElementById('edit-modal').classList.add('open');
+    }
+    function closeEditModal() {
+      document.getElementById('edit-modal').classList.remove('open');
+      document.querySelectorAll('.autocomplete-dropdown').forEach(d => d.classList.remove('open'));
+    }
+
+    function saveTaskEdits() {
+      const id = document.getElementById('edit-id').value;
+      const t = db.tasks.find(x => x.id === id);
+      if (t) {
+        t.name = document.getElementById('edit-title').value.trim() || t.name;
+        t.status = document.getElementById('edit-status').value;
+        t.dueDate = document.getElementById('edit-due').value || null;
+        t.startTime = document.getElementById('edit-start').value || null;
+        let end = document.getElementById('edit-end').value || null;
+        if (t.startTime && !end) end = computeEndTime(t.startTime);
+        t.endTime = end;
+        t.projectId = document.getElementById('edit-project').value || null;
+        t.situation = document.getElementById('edit-sit').value.trim() || null;
+        t.person = document.getElementById('edit-person').value.trim() || null;
+        t.recurrence = document.getElementById('edit-recurrence').value || 'none';
+        t.description = document.getElementById('edit-desc').value.trim() || null;
+        persistData();
+      }
+      closeEditModal();
+    }
+
+    function deleteCurrentTask() {
+      const id = document.getElementById('edit-id').value;
+      db.tasks = db.tasks.filter(x => x.id !== id);
+      persistData();
+      closeEditModal();
+    }
+
+    // Modal Proyecto (Crear / Editar)
+    function openCreateProjectModal() {
+      document.getElementById('project-modal-title').textContent = 'Nuevo Proyecto';
+      document.getElementById('proj-edit-id').value = '';
+      document.getElementById('proj-name').value = '';
+      document.getElementById('proj-status').value = 'Active';
+      document.getElementById('proj-person').value = '';
+      document.getElementById('proj-notes').value = '';
+      document.getElementById('proj-delete-btn').style.display = 'none';
+
+      const select = document.getElementById('proj-area');
+      select.innerHTML = db.areas.map(a => `<option value="${escapeHTML(a)}">${escapeHTML(a)}</option>`).join('');
+
+      document.getElementById('project-modal').classList.add('open');
+      setTimeout(() => document.getElementById('proj-name').focus(), 100);
+    }
+
+    function openEditProjectModal(id) {
+      const p = db.projects.find(x => x.id === id);
+      if (!p) return;
+      document.getElementById('project-modal-title').textContent = 'Editar Proyecto';
+      document.getElementById('proj-edit-id').value = p.id;
+      document.getElementById('proj-name').value = p.name;
+      document.getElementById('proj-status').value = p.status || 'Active';
+      document.getElementById('proj-person').value = p.person || '';
+      document.getElementById('proj-notes').value = p.notes || '';
+      document.getElementById('proj-delete-btn').style.display = 'block';
+
+      const select = document.getElementById('proj-area');
+      select.innerHTML = db.areas.map(a => `<option value="${escapeHTML(a)}" ${p.area === a ? 'selected' : ''}>${escapeHTML(a)}</option>`).join('');
+
+      document.getElementById('project-modal').classList.add('open');
+    }
+
+    function closeProjectModal() {
+      document.getElementById('project-modal').classList.remove('open');
+      document.querySelectorAll('.autocomplete-dropdown').forEach(d => d.classList.remove('open'));
+    }
+
+    function saveProjectData() {
+      const id = document.getElementById('proj-edit-id').value;
+      const name = document.getElementById('proj-name').value.trim();
+      const area = document.getElementById('proj-area').value;
+      const status = document.getElementById('proj-status').value;
+      const person = document.getElementById('proj-person').value.trim() || null;
+      const notes = document.getElementById('proj-notes').value.trim() || null;
+
+      if (!name) return;
+
+      if (id) {
+        // Editar existente
+        const p = db.projects.find(x => x.id === id);
+        if (p) {
+          p.name = name;
+          p.area = area;
+          p.status = status;
+          p.person = person;
+          p.notes = notes;
+        }
+      } else {
+        // Crear nuevo
+        const newProj = {
+          id: 'p_' + Date.now(),
+          name: name,
+          area: area,
+          status: status,
+          person: person,
+          notes: notes
+        };
+        db.projects.push(newProj);
+        selectedProject = newProj.id;
+      }
+
+      closeProjectModal();
+      persistData();
+    }
+
+    function deleteCurrentProject() {
+      const id = document.getElementById('proj-edit-id').value;
+      if (!id) return;
+      if (confirm("¿Eliminar definitivamente este proyecto? Las tareas asociadas perderán la referencia pero no se borrarán.")) {
+        db.projects = db.projects.filter(p => p.id !== id);
+        db.tasks.forEach(t => { if (t.projectId === id) t.projectId = null; });
+        if (selectedProject === id) selectedProject = null;
+        closeProjectModal();
+        persistData();
+      }
+    }
+
+    // Modal Área
+    function openAreaModal() {
+      document.getElementById('new-area-name').value = '';
+      document.getElementById('area-modal').classList.add('open');
+    }
+    function closeAreaModal() { document.getElementById('area-modal').classList.remove('open'); }
+    function saveNewArea() {
+      const name = document.getElementById('new-area-name').value.trim();
+      if (name && !db.areas.includes(name)) {
+        db.areas.push(name);
+        closeAreaModal();
+        persistData();
+      }
+    }
+    function deleteArea(area) {
+      if (confirm(`¿Eliminar el área "${area}"? Los proyectos quedarán sin área asignada.`)) {
+        db.areas = db.areas.filter(a => a !== area);
+        persistData();
+      }
+    }
+
+    function populateProjectSelects() {
+      const options = `<option value="">(Sin Proyecto)</option>` + db.projects.map(p => `<option value="${p.id}">${escapeHTML(p.name)} (${escapeHTML(p.area)})</option>`).join('');
+      document.getElementById('capture-project').innerHTML = options;
+      document.getElementById('edit-project').innerHTML = options;
+    }
+
+    // --- MODAL DE AJUSTES ---
+    function openSettingsModal() {
+      const cfg = getGHConfig();
+      document.getElementById('gh-owner').value = cfg.owner;
+      document.getElementById('gh-repo').value = cfg.repo;
+      document.getElementById('gh-token').value = cfg.token;
+
+      const calUrl = cfg.owner && cfg.repo ? `https://${cfg.owner}.github.io/${cfg.repo}/calendar.ics` : 'Configura usuario y repo primero';
+      document.getElementById('cal-url-display').value = calUrl;
+      renderSettingsSituations();
+      document.getElementById('settings-modal').classList.add('open');
+    }
+    function closeSettingsModal() { document.getElementById('settings-modal').classList.remove('open'); }
+
+    function saveSettings() {
+      localStorage.setItem('gtd_owner', document.getElementById('gh-owner').value.trim());
+      localStorage.setItem('gtd_repo', document.getElementById('gh-repo').value.trim());
+      localStorage.setItem('gtd_token', document.getElementById('gh-token').value.trim());
+      closeSettingsModal();
+      loadData();
+    }
+
+    function copyCalendarURL() {
+      const input = document.getElementById('cal-url-display');
+      input.select();
+      navigator.clipboard.writeText(input.value);
+      alert("Enlace copiado al portapapeles. Pégalo en Google Calendar.");
+    }
+
+    function downloadICS() {
+      const ics = generateICS();
+      const blob = new Blob([ics], { type: "text/calendar;charset=utf-8" });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = "calendar.ics";
+      a.click();
+    }
+
+    function exportJSON() {
+      const blob = new Blob([JSON.stringify(db, null, 2)], { type: "application/json" });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `gtd_backup_${new Date().toISOString().split('T')[0]}.json`;
+      a.click();
+    }
+    function triggerImport() { document.getElementById('import-file').click(); }
+    function importJSON(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        try {
+          db = JSON.parse(ev.target.result);
+          if (!db.projects) db.projects = [];
+          if (!db.tasks) db.tasks = [];
+          db.projects.forEach(p => { if (!p.status) p.status = 'Active'; });
+          db.tasks.forEach(t => { if (!t.recurrence) t.recurrence = 'none'; });
+          persistData();
+          alert("Datos importados con éxito.");
+        } catch(err) { alert("Archivo JSON no válido."); }
+      };
+      reader.readAsText(file);
+    }
+
+    function escapeHTML(str) {
+      if (!str) return '';
+      return str.replace(/[&<>'"]/g, tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag));
+    }
+
+    // --- ACCESOS DIRECTOS DE TECLADO ---
+    window.addEventListener('keydown', (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+        if (document.getElementById('capture-modal')?.classList.contains('open')) {
+          e.preventDefault();
+          handleSaveCapture();
+          return;
+        }
+        if (document.getElementById('edit-modal')?.classList.contains('open')) {
+          e.preventDefault();
+          saveTaskEdits();
+          return;
+        }
+        if (document.getElementById('project-modal')?.classList.contains('open')) {
+          e.preventDefault();
+          saveProjectData();
+          return;
+        }
+        if (document.getElementById('area-modal')?.classList.contains('open')) {
+          e.preventDefault();
+          saveNewArea();
+          return;
+        }
+      }
+
       if (e.key === 'Escape') {
         closeCaptureModal();
         closeEditModal();
