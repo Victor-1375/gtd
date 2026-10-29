@@ -496,6 +496,7 @@
     };
     let currentTab = 'mem';
     let memSubTab = 'today'; // 'today' | 'agenda'
+    let memNextOpen = false; // Acordeón de Siguientes Acciones en MEM (cerrado por defecto)
     let projectFilterStatus = 'Active'; // 'Active' | 'Paused' | 'Completed'
     let reviewSubTab = 'delegated'; // 'delegated' | 'reevaluate' | 'weekly' | 'completed'
     let filterSituation = '';
@@ -1248,6 +1249,12 @@
 
     function setSituationFilter(s) {
       filterSituation = s;
+      if (s !== '') memNextOpen = true; // Se abre automáticamente al elegir un contexto
+      render();
+    }
+
+    function toggleMemNext() {
+      memNextOpen = !memNextOpen;
       render();
     }
 
@@ -1298,8 +1305,16 @@
         html += `<div class="section-title">Para Hoy (${dueToday.length})</div>`;
         html += dueToday.length === 0 ? `<p style="color:var(--text-muted); font-size:0.85rem;">Sin compromisos para hoy.</p>` : dueToday.map(t => renderTaskCard(t, today)).join('');
 
-        html += `<div class="section-title">Siguientes Acciones Disponibles (${nextNoDate.length})</div>`;
-        html += nextNoDate.length === 0 ? `<p style="color:var(--text-muted); font-size:0.85rem;">Sin acciones en este contexto.</p>` : nextNoDate.map(t => renderTaskCard(t, today)).join('');
+        // Sección Colapsable para Siguientes Acciones Disponibles
+        html += `
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-top:24px; cursor:pointer; user-select:none;" onclick="toggleMemNext()">
+            <span class="section-title" style="margin:0;">Siguientes Acciones Disponibles (${nextNoDate.length})</span>
+            <span style="font-size:0.75rem; font-weight:600; color:var(--primary); padding:3px 8px; background:var(--tag-bg); border-radius:6px;">${memNextOpen ? '▲ Plegar' : '▼ Desplegar'}</span>
+          </div>
+        `;
+        if (memNextOpen) {
+          html += `<div style="margin-top:8px;">` + (nextNoDate.length === 0 ? `<p style="color:var(--text-muted); font-size:0.85rem;">Sin acciones en este contexto.</p>` : nextNoDate.map(t => renderTaskCard(t, today)).join('')) + `</div>`;
+        }
 
         html += `
           <div style="display:flex; justify-content:space-between; align-items:center; margin-top:24px;">
