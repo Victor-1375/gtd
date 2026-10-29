@@ -1333,11 +1333,13 @@
           html += `<div style="margin-top:8px;">` + (nextNoDate.length === 0 ? `<p style="color:var(--text-muted); font-size:0.85rem;">Sin acciones en este contexto.</p>` : nextNoDate.map(t => renderTaskCard(t, today)).join('')) + `</div>`;
         }
 
+      html += `<div class="section-title">Próximos 7 días (${upcoming.length})</div>`;
+        html += upcoming.length === 0 ? `<p style="color:var(--text-muted); font-size:0.85rem; margin-top:8px;">Sin compromisos cercanos.</p>` : upcoming.sort((a,b) => a.dueDate.localeCompare(b.dueDate)).map(t => renderTaskCard(t, today)).join('');
         html += `
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-top:24px;">
-            <span class="section-title" style="margin:0;">Próximos 7 días (${upcoming.length})</span>
-            <button class="btn btn-secondary btn-sm" onclick="setMemSubTab('agenda')">Ver Agenda Completa →</button>
+          <div style="margin-top:20px; margin-bottom:16px; text-align:center;">
+            <button class="btn btn-secondary" style="width:100%; max-width:320px;" onclick="setMemSubTab('agenda')">Ver Agenda Completa →</button>
           </div>
+  
         `;
         html += upcoming.length === 0 ? `<p style="color:var(--text-muted); font-size:0.85rem; margin-top:8px;">Sin compromisos cercanos.</p>` : upcoming.sort((a,b) => a.dueDate.localeCompare(b.dueDate)).map(t => renderTaskCard(t, today)).join('');
 
@@ -2111,6 +2113,82 @@
       if (!str) return '';
       return str.replace(/[&<>'"]/g, tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag));
     }
+    // --- NAVEGACIÓN TÁCTIL / SWIPE EN MÓVIL ---
+    let touchStartX = 0;
+    let touchStartY = 0;
+    let touchStartTime = 0;
+
+    window.addEventListener('touchstart', (e) => {
+      // No activar si hay un modal abierto o si se interactúa con inputs o barras con scroll horizontal
+      if (document.querySelector('.modal-overlay.open')) return;
+      if (e.target.closest('input, textarea, select, .filter-bar, .autocomplete-dropdown')) return;
+
+      const touch = e.changedTouches[0];
+      touchStartX = touch.clientX;
+      touchStartY = touch.clientY;
+      touchStartTime = Date.now();
+    }, { passive: true });
+
+    window.addEventListener('touchend', (e) => {
+      if (document.querySelector('.modal-overlay.open')) return;
+      if (e.target.closest('input, textarea, select, .filter-bar, .autocomplete-dropdown')) return;
+
+      const touch = e.changedTouches[0];
+      const diffX = touch.clientX - touchStartX;
+      const diffY = touch.clientY - touchStartY;
+      const elapsedTime = Date.now() - touchStartTime;
+
+      // Descartar toques lentos (>600ms) o desplazamientos verticales (scroll estándar de lectura)
+      if (elapsedTime > 600) return;
+      if (Math.abs(diffX) < 45 || Math.abs(diffX) < Math.abs(diffY) * 1.5) return;
+
+      // diffX < 0: deslizamiento a la izquierda (Avanzar) | diffX > 0: deslizamiento a la derecha (Retroceder)
+      const isNext = diffX < 0;
+
+      if (currentTab === 'mem') {
+        const memViews = ['today', 'agenda'];
+        const currentIdx = memViews.indexOf(memSubTab);
+        if (isNext && currentIdx < memViews.length - 1) {
+          setMemSubTab(memViews[currentIdx + 1]);
+        } else if (!isNext && currentIdx > 0) {
+          setMemSubTab(memViews[currentIdx - 1]);
+        }
+      } else if (currentTab === 'projects') {
+        if (selectedProject) {
+          // Deslizar a la derecha dentro de un proyecto vuelve al listado general
+          if (!isNext) {
+            selectedProject = null;
+            render();
+          }
+          return;
+        }
+        const projViews = ['Active', 'Paused', 'Completed'];
+        const currentIdx = projViews.indexOf(projectFilterStatus);
+        if (isNext && currentIdx < projViews.length - 1) {
+          projectFilterStatus = projViews[currentIdx + 1];
+          render();
+        } else if (!isNext && currentIdx > 0) {
+          projectFilterStatus = projViews[currentIdx - 1];
+          render();
+        }
+      } else if (currentTab === 'review') {
+        const reviewViews = ['delegated', 'reevaluate', 'weekly', 'completed'];
+        const currentIdx = reviewViews.indexOf(reviewSubTab);
+        if (isNext && currentIdx < reviewViews.length - 1) {
+          reviewSubTab = reviewViews[currentIdx + 1];
+          render();
+        } else if (!isNext && currentIdx > 0) {
+          reviewSubTab = reviewViews[currentIdx - 1];
+          render();
+        }
+      } else if (currentTab === 'people') {
+        // Deslizar a la derecha dentro de la agenda de una persona vuelve al directorio
+        if (selectedPerson && !isNext) {
+          selectedPerson = null;
+          render();
+        }
+      }
+    }, { passive: true });
 
     // --- ACCESOS DIRECTOS DE TECLADO ---
     window.addEventListener('keydown', (e) => {
