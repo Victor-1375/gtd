@@ -187,23 +187,32 @@
     .checklist-item.done { opacity: 0.6; }
     .checklist-item.done label { text-decoration: line-through; }
 
-    /* Transición de Deslizamiento Suave para Sub-vistas */
+/* Prevención de desbordamiento horizontal y aceleración gráfica */
+    html, body, main {
+      overflow-x: hidden;
+      width: 100%;
+    }
+
     #subview-content {
+      overflow-x: hidden;
+      width: 100%;
       will-change: transform, opacity;
+      backface-visibility: hidden;
+      -webkit-backface-visibility: hidden;
     }
     .slide-in-right {
-      animation: slideRight 0.22s cubic-bezier(0.16, 1, 0.3, 1) both;
+      animation: slideRight 0.2s cubic-bezier(0.16, 1, 0.3, 1) both;
     }
     .slide-in-left {
-      animation: slideLeft 0.22s cubic-bezier(0.16, 1, 0.3, 1) both;
+      animation: slideLeft 0.2s cubic-bezier(0.16, 1, 0.3, 1) both;
     }
     @keyframes slideRight {
-      from { transform: translateX(28px); opacity: 0.85; }
-      to { transform: translateX(0); opacity: 1; }
+      from { transform: translate3d(22px, 0, 0); opacity: 0.85; }
+      to { transform: translate3d(0, 0, 0); opacity: 1; }
     }
     @keyframes slideLeft {
-      from { transform: translateX(-28px); opacity: 0.85; }
-      to { transform: translateX(0); opacity: 1; }
+      from { transform: translate3d(-22px, 0, 0); opacity: 0.85; }
+      to { transform: translate3d(0, 0, 0); opacity: 1; }
     }
   </style>
 </head>
