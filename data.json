@@ -27,6 +27,15 @@
       "dueDate": "2027-04-11",
       "person": "David Samudio",
       "notes": null
+    },
+    {
+      "id": "p_1793291750752",
+      "name": "The Art of Teaching",
+      "area": "FORMACIÓN",
+      "status": "Inbox",
+      "dueDate": null,
+      "person": null,
+      "notes": "Leer el libro"
     }
   ],
   "tasks": [
