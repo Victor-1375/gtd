@@ -36,6 +36,15 @@
       "dueDate": null,
       "person": null,
       "notes": "Leer el libro"
+    },
+    {
+      "id": "p_1793291858177",
+      "name": "Formación en antropología",
+      "area": "PUSC",
+      "status": "Active",
+      "dueDate": null,
+      "person": "Don Francesco Russo",
+      "notes": null
     }
   ],
   "tasks": [
