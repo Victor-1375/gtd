@@ -3,24 +3,25 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <link rel="icon" type="image/svg+xml" href="./icon.svg">
-<link rel="apple-touch-icon" href="./icon.svg">
-<meta name="theme-color" content="#090d16">
   <title>Mi GTD</title>
+  
   <!-- PWA & Mobile Standalone -->
-<link rel="manifest" href="./manifest.json">
-<meta name="theme-color" content="#2563eb">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="apple-mobile-web-app-title" content="Mi GTD">
-<link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><rect width='512' height='512' rx='100' fill='%232563eb'/><text x='50%25' y='55%25' dominant-baseline='middle' text-anchor='middle' fill='white' font-size='260' font-family='sans-serif' font-weight='bold'>⚡</text></svg>">
-<script>
-  if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-      navigator.serviceWorker.register('./sw.js').catch(() => {});
-    });
-  }
-</script>
+  <link rel="manifest" href="./manifest.json">
+  <link rel="icon" type="image/svg+xml" href="./icon.svg">
+  <link rel="apple-touch-icon" href="./icon.svg">
+  <meta name="theme-color" content="#090d16">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="GTD">
+
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js').catch(() => {});
+      });
+    }
+  </script>
+
   <style>
     :root {
       --bg: #f8fafc;
@@ -39,21 +40,6 @@
       --success-bg: #dcfce7;
       --tag-bg: #f1f5f9;
       --radius: 10px;
-    }
-    /* Transiciones cinemáticas fluidas de deslizamiento */
-    .slide-in-right {
-      animation: slideRight 0.22s cubic-bezier(0.16, 1, 0.3, 1) both;
-    }
-    .slide-in-left {
-      animation: slideLeft 0.22s cubic-bezier(0.16, 1, 0.3, 1) both;
-    }
-    @keyframes slideRight {
-      from { transform: translateX(36px); opacity: 0.8; }
-      to { transform: translateX(0); opacity: 1; }
-    }
-    @keyframes slideLeft {
-      from { transform: translateX(-36px); opacity: 0.8; }
-      to { transform: translateX(0); opacity: 1; }
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; -webkit-tap-highlight-color: transparent; }
@@ -200,6 +186,25 @@
     .checklist-item input[type="checkbox"] { width: 18px; height: 18px; margin-top: 2px; cursor: pointer; }
     .checklist-item.done { opacity: 0.6; }
     .checklist-item.done label { text-decoration: line-through; }
+
+    /* Transición de Deslizamiento Suave para Sub-vistas */
+    #subview-content {
+      will-change: transform, opacity;
+    }
+    .slide-in-right {
+      animation: slideRight 0.22s cubic-bezier(0.16, 1, 0.3, 1) both;
+    }
+    .slide-in-left {
+      animation: slideLeft 0.22s cubic-bezier(0.16, 1, 0.3, 1) both;
+    }
+    @keyframes slideRight {
+      from { transform: translateX(28px); opacity: 0.85; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+    @keyframes slideLeft {
+      from { transform: translateX(-28px); opacity: 0.85; }
+      to { transform: translateX(0); opacity: 1; }
+    }
   </style>
 </head>
 <body>
@@ -534,6 +539,7 @@
     let filterSituation = '';
     let selectedPerson = null;
     let selectedProject = null;
+    let pendingSlideDirection = null; // 'next' | 'prev' | null
     let ghShaData = null;
     let ghShaIcs = null;
 
@@ -1268,6 +1274,7 @@
     // --- NAVEGACIÓN Y VISTAS ---
     function switchTab(tab) {
       currentTab = tab;
+      pendingSlideDirection = null;
       document.querySelectorAll('.nav-btn').forEach((btn, idx) => {
         btn.classList.toggle('active', ['mem', 'inbox', 'next', 'projects', 'people', 'review'][idx] === tab);
       });
@@ -1301,6 +1308,14 @@
       else if (currentTab === 'projects') renderProjects(container, today);
       else if (currentTab === 'people') renderPeople(container, today);
       else if (currentTab === 'review') renderReview(container, today);
+
+      if (pendingSlideDirection) {
+        const sub = document.getElementById('subview-content');
+        if (sub) {
+          sub.classList.add(pendingSlideDirection === 'next' ? 'slide-in-right' : 'slide-in-left');
+        }
+        pendingSlideDirection = null;
+      }
     }
 
     // --- VISTA MEM (HOY Y AHORA / AGENDA HORIZONTE) ---
@@ -1316,6 +1331,7 @@
           <span class="filter-chip ${filterSituation === '' ? 'active' : ''}" onclick="setSituationFilter('')">Todas</span>
           ${allSituations.map(s => `<span class="filter-chip ${filterSituation === s ? 'active' : ''}" onclick="setSituationFilter('${escapeHTML(s)}')">${escapeHTML(s)}</span>`).join('')}
         </div>
+        <div id="subview-content">
       `;
 
       if (memSubTab === 'today') {
@@ -1348,13 +1364,12 @@
           html += `<div style="margin-top:8px;">` + (nextNoDate.length === 0 ? `<p style="color:var(--text-muted); font-size:0.85rem;">Sin acciones en este contexto.</p>` : nextNoDate.map(t => renderTaskCard(t, today)).join('')) + `</div>`;
         }
 
-      html += `<div class="section-title">Próximos 7 días (${upcoming.length})</div>`;
+        html += `<div class="section-title">Próximos 7 días (${upcoming.length})</div>`;
         html += upcoming.length === 0 ? `<p style="color:var(--text-muted); font-size:0.85rem; margin-top:8px;">Sin compromisos cercanos.</p>` : upcoming.sort((a,b) => a.dueDate.localeCompare(b.dueDate)).map(t => renderTaskCard(t, today)).join('');
         html += `
           <div style="margin-top:20px; margin-bottom:16px; text-align:center;">
             <button class="btn btn-secondary" style="width:100%; max-width:320px;" onclick="setMemSubTab('agenda')">Ver Agenda Completa →</button>
           </div>
-  
         `;
 
       } else {
@@ -1409,6 +1424,7 @@
         }
       }
 
+      html += `</div>`;
       container.innerHTML = html;
     }
 
@@ -1463,23 +1479,24 @@
         else if (p.status === 'Completed') { statusClass = 'tag-status-completed'; statusLabel = 'Completado'; }
 
         let html = `
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-            <button class="btn btn-secondary btn-sm" onclick="selectedProject = null; render();">← Volver a Proyectos</button>
-            <div style="display:flex; gap:6px;">
-              <button class="btn btn-secondary btn-sm" onclick="openEditProjectModal('${p.id}')">Editar Proyecto</button>
-              <button class="btn btn-primary btn-sm" onclick="openCaptureModal('${p.id}')">+ Acción</button>
+          <div id="subview-content">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+              <button class="btn btn-secondary btn-sm" onclick="selectedProject = null; render();">← Volver a Proyectos</button>
+              <div style="display:flex; gap:6px;">
+                <button class="btn btn-secondary btn-sm" onclick="openEditProjectModal('${p.id}')">Editar Proyecto</button>
+                <button class="btn btn-primary btn-sm" onclick="openCaptureModal('${p.id}')">+ Acción</button>
+              </div>
             </div>
-          </div>
-          <div style="background:var(--surface); border:1px solid var(--border-light); border-radius:var(--radius); padding:16px; margin-bottom:16px;">
-            <h2 style="font-size:1.25rem; font-weight:700; margin-bottom:8px;">📁 ${escapeHTML(p.name)}</h2>
-            <div style="display:flex; flex-wrap:wrap; gap:6px; align-items:center;">
-              <span class="tag ${statusClass}">${statusLabel}</span>
-              <span class="tag" style="font-weight:600;">Área: ${escapeHTML(p.area)}</span>
-              ${p.dueDate ? `<span class="tag tag-due ${getDaysDiff(p.dueDate, today) < 0 && p.status !== 'Completed' ? 'overdue' : ''}">📅 Fecha límite: ${p.dueDate} (${getRelativeDateLabel(getDaysDiff(p.dueDate, today))})</span>` : ''}
-              ${p.person ? `<span class="tag tag-person" onclick="goToPerson(decodeURIComponent('${encodeURIComponent(p.person)}'))">👤 ${escapeHTML(p.person)}</span>` : ''}
+            <div style="background:var(--surface); border:1px solid var(--border-light); border-radius:var(--radius); padding:16px; margin-bottom:16px;">
+              <h2 style="font-size:1.25rem; font-weight:700; margin-bottom:8px;">📁 ${escapeHTML(p.name)}</h2>
+              <div style="display:flex; flex-wrap:wrap; gap:6px; align-items:center;">
+                <span class="tag ${statusClass}">${statusLabel}</span>
+                <span class="tag" style="font-weight:600;">Área: ${escapeHTML(p.area)}</span>
+                ${p.dueDate ? `<span class="tag tag-due ${getDaysDiff(p.dueDate, today) < 0 && p.status !== 'Completed' ? 'overdue' : ''}">📅 Fecha límite: ${p.dueDate} (${getRelativeDateLabel(getDaysDiff(p.dueDate, today))})</span>` : ''}
+                ${p.person ? `<span class="tag tag-person" onclick="goToPerson(decodeURIComponent('${encodeURIComponent(p.person)}'))">👤 ${escapeHTML(p.person)}</span>` : ''}
+              </div>
+              ${p.notes ? `<div style="margin-top:12px; font-size:0.85rem; color:var(--text); white-space:pre-wrap; border-top:1px solid var(--border-light); padding-top:8px;">${escapeHTML(p.notes)}</div>` : ''}
             </div>
-            ${p.notes ? `<div style="margin-top:12px; font-size:0.85rem; color:var(--text); white-space:pre-wrap; border-top:1px solid var(--border-light); padding-top:8px;">${escapeHTML(p.notes)}</div>` : ''}
-          </div>
         `;
 
         html += `<div class="section-title" style="color:var(--primary);">🎯 Siguientes Acciones (${nextActions.length})</div>`;
@@ -1505,6 +1522,7 @@
           html += completed.map(t => renderTaskCard(t, today)).join('');
         }
 
+        html += `</div>`;
         container.innerHTML = html;
         return;
       }
@@ -1522,6 +1540,7 @@
           <button class="${projectFilterStatus === 'Paused' ? 'active' : ''}" onclick="projectFilterStatus = 'Paused'; render();">Inbox / En Pausa</button>
           <button class="${projectFilterStatus === 'Completed' ? 'active' : ''}" onclick="projectFilterStatus = 'Completed'; render();">Completados</button>
         </div>
+        <div id="subview-content">
       `;
 
       db.areas.forEach(area => {
@@ -1588,6 +1607,7 @@
         html += `</div>`;
       });
 
+      html += `</div>`;
       container.innerHTML = html;
     }
 
@@ -1608,15 +1628,16 @@
         const sharedProjects = db.projects.filter(p => p.person === selectedPerson && p.status !== 'Completed');
 
         let html = `
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
-            <button class="btn btn-secondary btn-sm" onclick="selectedPerson = null; render();">← Volver a lista</button>
-            <div style="display:flex; gap:6px;">
-              <button class="btn btn-secondary btn-sm" onclick="promptRenamePerson(decodeURIComponent('${encodeURIComponent(selectedPerson)}'))">Renombrar / Unir</button>
-              <button class="btn btn-secondary btn-sm" style="color:var(--danger);" onclick="promptClearPerson(decodeURIComponent('${encodeURIComponent(selectedPerson)}'))">Desvincular</button>
+          <div id="subview-content">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+              <button class="btn btn-secondary btn-sm" onclick="selectedPerson = null; render();">← Volver a lista</button>
+              <div style="display:flex; gap:6px;">
+                <button class="btn btn-secondary btn-sm" onclick="promptRenamePerson(decodeURIComponent('${encodeURIComponent(selectedPerson)}'))">Renombrar / Unir</button>
+                <button class="btn btn-secondary btn-sm" style="color:var(--danger);" onclick="promptClearPerson(decodeURIComponent('${encodeURIComponent(selectedPerson)}'))">Desvincular</button>
+              </div>
             </div>
-          </div>
-          <h2 style="font-size:1.2rem; font-weight:700; margin-bottom:6px;">👤 ${escapeHTML(selectedPerson)}</h2>
-          <p style="font-size:0.8rem; color:var(--text-muted); margin-bottom:16px;">Agenda 1 a 1 (${personTasks.length} tareas pendientes, ${sharedProjects.length} proyectos en común)</p>
+            <h2 style="font-size:1.2rem; font-weight:700; margin-bottom:6px;">👤 ${escapeHTML(selectedPerson)}</h2>
+            <p style="font-size:0.8rem; color:var(--text-muted); margin-bottom:16px;">Agenda 1 a 1 (${personTasks.length} tareas pendientes, ${sharedProjects.length} proyectos en común)</p>
         `;
 
         if (sharedProjects.length > 0) {
@@ -1647,6 +1668,7 @@
           html += otherTasks.map(t => renderTaskCard(t, today)).join('');
         }
 
+        html += `</div>`;
         container.innerHTML = html;
         return;
       }
@@ -1658,6 +1680,7 @@
         <p style="font-size:0.8rem; color:var(--text-muted); margin-bottom:14px;">
           Personas con tareas pendientes o proyectos activos. Desaparecen automáticamente cuando todo está completado.
         </p>
+        <div id="subview-content">
       `;
 
       if (activePersons.length === 0) {
@@ -1688,6 +1711,7 @@
         }).join('');
       }
 
+      html += `</div>`;
       container.innerHTML = html;
     }
 
@@ -1701,6 +1725,7 @@
           <button class="${reviewSubTab === 'weekly' ? 'active' : ''}" onclick="reviewSubTab = 'weekly'; render();">⚡ Revisión Semanal</button>
           <button class="${reviewSubTab === 'completed' ? 'active' : ''}" onclick="reviewSubTab = 'completed'; render();">✓ Historial</button>
         </div>
+        <div id="subview-content">
       `;
 
       if (reviewSubTab === 'delegated') {
@@ -1835,6 +1860,7 @@
         html += completed.length === 0 ? `<p style="color:var(--text-muted); font-size:0.85rem;">Sin tareas completadas aún.</p>` : completed.map(t => renderTaskCard(t, today)).join('');
       }
 
+      html += `</div>`;
       container.innerHTML = html;
     }
 
@@ -2127,18 +2153,11 @@
       if (!str) return '';
       return str.replace(/[&<>'"]/g, tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag));
     }
-   // --- NAVEGACIÓN TÁCTIL / SWIPE EN MÓVIL CON ANIMACIÓN ---
+
+    // --- NAVEGACIÓN TÁCTIL / SWIPE EN MÓVIL ---
     let touchStartX = 0;
     let touchStartY = 0;
     let touchStartTime = 0;
-
-    function applySlideAnimation(direction) {
-      const el = document.getElementById('app-content');
-      if (!el) return;
-      el.classList.remove('slide-in-right', 'slide-in-left');
-      void el.offsetWidth; // Forzar reflujo para reiniciar animación
-      el.classList.add(direction === 'next' ? 'slide-in-right' : 'slide-in-left');
-    }
 
     window.addEventListener('touchstart', (e) => {
       if (document.querySelector('.modal-overlay.open')) return;
@@ -2168,16 +2187,16 @@
         const memViews = ['today', 'agenda'];
         const currentIdx = memViews.indexOf(memSubTab);
         if (isNext && currentIdx < memViews.length - 1) {
-          applySlideAnimation('next');
+          pendingSlideDirection = 'next';
           setMemSubTab(memViews[currentIdx + 1]);
         } else if (!isNext && currentIdx > 0) {
-          applySlideAnimation('prev');
+          pendingSlideDirection = 'prev';
           setMemSubTab(memViews[currentIdx - 1]);
         }
       } else if (currentTab === 'projects') {
         if (selectedProject) {
           if (!isNext) {
-            applySlideAnimation('prev');
+            pendingSlideDirection = 'prev';
             selectedProject = null;
             render();
           }
@@ -2186,11 +2205,11 @@
         const projViews = ['Active', 'Paused', 'Completed'];
         const currentIdx = projViews.indexOf(projectFilterStatus);
         if (isNext && currentIdx < projViews.length - 1) {
-          applySlideAnimation('next');
+          pendingSlideDirection = 'next';
           projectFilterStatus = projViews[currentIdx + 1];
           render();
         } else if (!isNext && currentIdx > 0) {
-          applySlideAnimation('prev');
+          pendingSlideDirection = 'prev';
           projectFilterStatus = projViews[currentIdx - 1];
           render();
         }
@@ -2198,17 +2217,17 @@
         const reviewViews = ['delegated', 'reevaluate', 'weekly', 'completed'];
         const currentIdx = reviewViews.indexOf(reviewSubTab);
         if (isNext && currentIdx < reviewViews.length - 1) {
-          applySlideAnimation('next');
+          pendingSlideDirection = 'next';
           reviewSubTab = reviewViews[currentIdx + 1];
           render();
         } else if (!isNext && currentIdx > 0) {
-          applySlideAnimation('prev');
+          pendingSlideDirection = 'prev';
           reviewSubTab = reviewViews[currentIdx - 1];
           render();
         }
       } else if (currentTab === 'people') {
         if (selectedPerson && !isNext) {
-          applySlideAnimation('prev');
+          pendingSlideDirection = 'prev';
           selectedPerson = null;
           render();
         }
