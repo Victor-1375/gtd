@@ -49,6 +49,20 @@
   ],
   "tasks": [
     {
+      "id": "t_1793374288800",
+      "name": "Carta niño Dios.",
+      "status": "Next Action",
+      "dueDate": "2026-11-01",
+      "startTime": null,
+      "endTime": null,
+      "projectId": null,
+      "situation": null,
+      "person": null,
+      "recurrence": "none",
+      "statusDate": "2026-10-30",
+      "description": null
+    },
+    {
       "id": "t_1793374262851",
       "name": "Escribir sugerencias a Checho",
       "status": "Next Action",
