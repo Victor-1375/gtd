@@ -51,7 +51,7 @@
     {
       "id": "t_1793374288800",
       "name": "Carta niño Dios.",
-      "status": "Next Action",
+      "status": "Completed",
       "dueDate": "2026-11-01",
       "startTime": null,
       "endTime": null,
@@ -59,7 +59,7 @@
       "situation": null,
       "person": null,
       "recurrence": "none",
-      "statusDate": "2026-10-30",
+      "statusDate": "2026-11-01",
       "description": null
     },
     {
