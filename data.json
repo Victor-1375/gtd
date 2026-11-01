@@ -149,7 +149,7 @@
     {
       "id": "t_1793218303782",
       "name": "Aclarar con David Samudio el 5 de noviembre",
-      "status": "Next Action",
+      "status": "Completed",
       "dueDate": "2026-11-01",
       "startTime": null,
       "endTime": null,
@@ -157,7 +157,7 @@
       "situation": null,
       "person": "David Samudio",
       "recurrence": "none",
-      "statusDate": "2026-10-29",
+      "statusDate": "2026-11-01",
       "description": null
     },
     {
