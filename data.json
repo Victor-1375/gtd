@@ -58,7 +58,7 @@
       "projectId": null,
       "situation": null,
       "person": null,
-      "recurrence": "none",
+      "recurrence": "monthly",
       "statusDate": "2026-11-04",
       "description": null
     },
