@@ -594,6 +594,12 @@
         updateSyncBadge('Sin Configurar', 'error');
         return;
       }
+      // Si hay capturas hechas sin conexión, subirlas primero a GitHub antes de descargar
+      if (localStorage.getItem('gtd_pending_sync') === 'true') {
+        updateSyncBadge('Subiendo pendientes...', 'syncing');
+        await persistData();
+        return;
+      }
 
       updateSyncBadge('Sincronizando...', 'syncing');
       try {
@@ -645,11 +651,13 @@
           headers: { 'Authorization': `token ${cfg.token}`, 'Content-Type': 'application/json' },
           body: JSON.stringify({ message: "Update GTD data", content: jsonContent, sha: ghShaData || undefined })
         });
-        if (resData.ok) {
+       if (resData.ok) {
           const d = await resData.json();
           ghShaData = d.content.sha;
+          localStorage.removeItem('gtd_pending_sync');
+        } else {
+          localStorage.setItem('gtd_pending_sync', 'true');
         }
-
         const icsContent = utf8ToBase64(generateICS());
         const resIcs = await fetch(`https://api.github.com/repos/${cfg.owner}/${cfg.repo}/contents/calendar.ics`, {
           method: 'PUT',
@@ -662,8 +670,9 @@
         }
 
         updateSyncBadge('Sincronizado', 'synced');
-      } catch (e) {
-        updateSyncBadge('Sin Conexión', 'error');
+     } catch (e) {
+        localStorage.setItem('gtd_pending_sync', 'true');
+        updateSyncBadge('Offline (Guardado local)', 'error');
       }
     }
 
@@ -2301,7 +2310,18 @@
         switchTab('review');
       }
     });
+// Sincronizar automáticamente en cuanto el teléfono recupere cobertura
+    window.addEventListener('online', () => {
+      if (localStorage.getItem('gtd_pending_sync') === 'true') {
+        persistData();
+      } else {
+        loadData();
+      }
+    });
 
+    window.addEventListener('offline', () => {
+      updateSyncBadge('Modo Offline', 'error');
+    });
     window.addEventListener('DOMContentLoaded', loadData);
   </script>
 </body>
