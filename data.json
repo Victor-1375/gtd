@@ -49,6 +49,20 @@
   ],
   "tasks": [
     {
+      "id": "t_1793762519082_ses",
+      "name": "cug",
+      "status": "Completed",
+      "dueDate": "2026-11-05",
+      "startTime": null,
+      "endTime": null,
+      "projectId": null,
+      "situation": null,
+      "person": null,
+      "recurrence": "none",
+      "statusDate": "2026-11-04",
+      "description": null
+    },
+    {
       "id": "t_1793754006773",
       "name": "Columna Omnes",
       "status": "Inbox",
@@ -64,16 +78,16 @@
     },
     {
       "id": "t_1793580217277",
-      "name": "cug",
+      "name": "cug [1 ses.]",
       "status": "Next Action",
-      "dueDate": "2026-11-05",
+      "dueDate": "2026-12-05",
       "startTime": null,
       "endTime": null,
       "projectId": null,
       "situation": null,
       "person": null,
       "recurrence": "monthly",
-      "statusDate": "2026-11-02",
+      "statusDate": "2026-11-04",
       "description": null
     },
     {
