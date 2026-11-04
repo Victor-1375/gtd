@@ -49,6 +49,20 @@
   ],
   "tasks": [
     {
+      "id": "t_1793754006773",
+      "name": "Columna Omnes",
+      "status": "Inbox",
+      "dueDate": "2026-12-05",
+      "startTime": null,
+      "endTime": null,
+      "projectId": null,
+      "situation": null,
+      "person": null,
+      "recurrence": "monthly",
+      "statusDate": "2026-11-04",
+      "description": "Se entrega en:\n5 de diciembre\n10 de febrero\n10 de abril\n10 de junio\n10 de octubre"
+    },
+    {
       "id": "t_1793580217277",
       "name": "cug",
       "status": "Next Action",
