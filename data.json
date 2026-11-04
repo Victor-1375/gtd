@@ -107,7 +107,7 @@
     {
       "id": "t_1793291815039",
       "name": "Continuar lectura",
-      "status": "Inbox",
+      "status": "Completed",
       "dueDate": null,
       "startTime": null,
       "endTime": null,
@@ -115,7 +115,7 @@
       "situation": null,
       "person": null,
       "recurrence": "none",
-      "statusDate": "2026-10-29",
+      "statusDate": "2026-11-04",
       "description": null
     },
     {
