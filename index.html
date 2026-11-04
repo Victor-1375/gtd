@@ -80,6 +80,8 @@
     .btn-primary:hover { background: var(--primary-hover); }
     .btn-secondary { background: var(--tag-bg); color: var(--text); border: 1px solid var(--border-light); }
     .btn-secondary:hover { background: #e2e8f0; }
+    .btn-session { background: #eff6ff; color: var(--primary); border: 1px solid #bfdbfe; font-weight: 700; }
+    .btn-session:hover { background: #dbeafe; }
     .btn-sm { padding: 5px 9px; font-size: 0.8rem; border-radius: 6px; }
 
     /* Selectores de sub-vistas */
@@ -119,7 +121,7 @@
     nav {
       position: fixed; bottom: 0; left: 0; right: 0; background: var(--surface);
       border-top: 1px solid var(--border-light); display: flex; justify-content: space-around;
-      padding: 8px 0; z-index: 40;
+      padding: 8px 0; z-index: 40; user-select: none;
     }
     .nav-btn {
       display: flex; flex-direction: column; align-items: center; gap: 3px;
@@ -162,7 +164,7 @@
     .tag-status-paused { background: var(--warning-bg); color: var(--warning-text); font-weight: 600; }
     .tag-status-inbox { background: #e0f2fe; color: #0369a1; font-weight: 600; }
     .tag-status-completed { background: #e2e8f0; color: var(--text-muted); font-weight: 600; }
-    .task-actions { display: flex; gap: 6px; margin-top: 4px; }
+    .task-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
 
     /* Modales */
     .modal-overlay {
@@ -187,7 +189,39 @@
     .checklist-item.done { opacity: 0.6; }
     .checklist-item.done label { text-decoration: line-through; }
 
-/* Prevención de desbordamiento horizontal y aceleración gráfica */
+    /* Modal de Búsqueda Global Oculta (Doble toque en MEM o tecla /) */
+    #search-modal {
+      position: fixed; inset: 0; background: rgba(15, 23, 42, 0.72); backdrop-filter: blur(4px);
+      z-index: 200; display: none; padding: 16px; align-items: flex-start; justify-content: center;
+    }
+    #search-modal.open { display: flex; }
+    .search-box {
+      background: var(--surface); width: 100%; max-width: 550px; border-radius: var(--radius);
+      margin-top: 36px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.25); overflow: hidden;
+    }
+    .search-input {
+      width: 100%; padding: 14px 16px; font-size: 1.05rem; border: none; outline: none;
+      border-bottom: 1px solid var(--border-light); background: transparent; color: var(--text);
+    }
+    .search-results { max-height: 62vh; overflow-y: auto; padding: 8px 12px; }
+    .search-group-title { font-size: 0.72rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin: 10px 4px 6px; letter-spacing: 0.05em; }
+    .search-item {
+      padding: 10px 12px; border-radius: 8px; cursor: pointer; display: flex;
+      justify-content: space-between; align-items: center; font-size: 0.9rem; gap: 10px;
+      border-bottom: 1px solid var(--border-light);
+    }
+    .search-item:last-child { border-bottom: none; }
+    .search-item:hover, .search-item:active { background: var(--tag-bg); color: var(--primary); }
+
+    /* Barra de progreso Inbox Zero Wizard */
+    .wizard-progress {
+      width: 100%; height: 6px; background: var(--border-light); border-radius: 999px; overflow: hidden; margin: 8px 0 16px;
+    }
+    .wizard-progress-bar {
+      height: 100%; background: var(--primary); transition: width 0.25s ease;
+    }
+
+    /* Prevención de desbordamiento horizontal y aceleración gráfica */
     html, body, main {
       overflow-x: hidden;
       width: 100%;
@@ -233,7 +267,7 @@
   <!-- Botón flotante para Captura Rápida -->
   <button class="fab" onclick="openCaptureModal()" title="Capturar Acción">+</button>
 
-  <!-- Navegación Inferior -->
+  <!-- Navegación Inferior (Doble toque en MEM abre el buscador global) -->
   <nav>
     <button class="nav-btn active" onclick="switchTab('mem')">
       <span>⚡</span><span>MEM</span>
@@ -260,7 +294,7 @@
     <div class="modal">
       <h3 style="margin-bottom: 12px;">Nueva Acción</h3>
       <div class="form-group" style="margin-bottom: 10px;">
-        <label>Acción / Tarea</label>
+        <label>Acción / Tarea (Usa [0/8] o [1 ses.] para bloques de sesiones)</label>
         <input type="text" id="capture-title" placeholder="¿Qué hay que hacer? (Enter)" onkeydown="if(event.key === 'Enter') handleSaveCapture()">
       </div>
       <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px; margin-bottom: 10px;">
@@ -334,7 +368,7 @@
       <h3 style="margin-bottom: 14px;">Detalles de la Acción</h3>
       <input type="hidden" id="edit-id">
       <div class="form-group" style="margin-bottom: 10px;">
-        <label>Acción</label>
+        <label>Acción (Usa [0/8] o [1 ses.] para activar contador)</label>
         <input type="text" id="edit-title">
       </div>
       <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px; margin-bottom: 10px;">
@@ -405,6 +439,11 @@
         </div>
       </div>
     </div>
+  </div>
+
+  <!-- Modal Guiado Inbox Zero (Clarificación 1 a 1) -->
+  <div class="modal-overlay" id="inbox-wizard-modal">
+    <div class="modal" id="inbox-wizard-content"></div>
   </div>
 
   <!-- Modal Proyecto (Crear / Editar) -->
@@ -534,6 +573,16 @@
     </div>
   </div>
 
+  <!-- Buscador Global Instantáneo (Doble toque en MEM o tecla /) -->
+  <div id="search-modal" onclick="if(event.target === this) closeGlobalSearch()">
+    <div class="search-box">
+      <input type="text" id="global-search-input" class="search-input" placeholder="🔍 Buscar en tareas, notas, proyectos o personas..." oninput="handleGlobalSearch(this.value)">
+      <div id="global-search-results" class="search-results">
+        <p style="font-size:0.85rem; color:var(--text-muted); padding:14px; text-align:center;">Escribe para buscar instantáneamente en todo tu GTD...</p>
+      </div>
+    </div>
+  </div>
+
   <script>
     let db = {
       areas: ["TESIS", "PUSC", "Cavabianca", "MONTALBÁN", "RETAMAR", "FORMACIÓN", "PERSONAL"],
@@ -549,6 +598,8 @@
     let selectedPerson = null;
     let selectedProject = null;
     let pendingSlideDirection = null; // 'next' | 'prev' | null
+    let lastMemTap = 0; // Detector de doble toque en MEM
+    let inboxWizardIndex = 0; // Índice actual en el modo guiado Inbox Zero
     let ghShaData = null;
     let ghShaIcs = null;
 
@@ -594,6 +645,7 @@
         updateSyncBadge('Sin Configurar', 'error');
         return;
       }
+
       // Si hay capturas hechas sin conexión, subirlas primero a GitHub antes de descargar
       if (localStorage.getItem('gtd_pending_sync') === 'true') {
         updateSyncBadge('Subiendo pendientes...', 'syncing');
@@ -632,7 +684,7 @@
           ghShaIcs = icsJson.sha;
         }
       } catch (err) {
-        updateSyncBadge('Sin Conexión', 'error');
+        updateSyncBadge('Modo Offline', 'error');
       }
     }
 
@@ -651,13 +703,14 @@
           headers: { 'Authorization': `token ${cfg.token}`, 'Content-Type': 'application/json' },
           body: JSON.stringify({ message: "Update GTD data", content: jsonContent, sha: ghShaData || undefined })
         });
-       if (resData.ok) {
+        if (resData.ok) {
           const d = await resData.json();
           ghShaData = d.content.sha;
           localStorage.removeItem('gtd_pending_sync');
         } else {
           localStorage.setItem('gtd_pending_sync', 'true');
         }
+
         const icsContent = utf8ToBase64(generateICS());
         const resIcs = await fetch(`https://api.github.com/repos/${cfg.owner}/${cfg.repo}/contents/calendar.ics`, {
           method: 'PUT',
@@ -670,7 +723,7 @@
         }
 
         updateSyncBadge('Sincronizado', 'synced');
-     } catch (e) {
+      } catch (e) {
         localStorage.setItem('gtd_pending_sync', 'true');
         updateSyncBadge('Offline (Guardado local)', 'error');
       }
@@ -755,6 +808,85 @@
       const mm = String(dt.getMonth() + 1).padStart(2, '0');
       const dd = String(dt.getDate()).padStart(2, '0');
       return `${yyyy}-${mm}-${dd}`;
+    }
+
+    // --- CONTADOR DE SESIONES (+1 SES.) PARA TAREAS CÍCLICAS Y BLOQUES DE ESTUDIO ---
+    function hasSessionCounter(t) {
+      if (!t || !t.name) return false;
+      if (t.recurrence && t.recurrence !== 'none') return true;
+      return /\[\d+\s*\/\s*\d+[^\]]*\]|\[\d+\s*(ses\.|sesiones|x)?\]|\[restan\s+\d+[^\]]*\]/i.test(t.name);
+    }
+
+    function incrementTaskSession(id) {
+      const t = db.tasks.find(x => x.id === id);
+      if (!t) return;
+
+      const today = new Date().toISOString().split('T')[0];
+      const oldName = t.name;
+      let shouldComplete = false;
+
+      // 1. Formato fracción [X/Y] o [X/Y ses.] -> incrementa X hasta Y
+      const fracRegex = /\[(\d+)\s*\/\s*(\d+)([^\]]*)\]/;
+      // 2. Formato regresivo [restan X] -> descuenta 1
+      const remRegex = /\[restan\s+(\d+)([^\]]*)\]/i;
+      // 3. Formato acumulativo [X ses.] o [Xx] -> suma 1 sesión
+      const countRegex = /\[(\d+)\s*(ses\.|sesiones|x)?\]/i;
+
+      if (fracRegex.test(t.name)) {
+        t.name = t.name.replace(fracRegex, (match, cur, tot, suffix) => {
+          const nextVal = parseInt(cur) + 1;
+          const totalVal = parseInt(tot);
+          if (nextVal >= totalVal) shouldComplete = true;
+          return `[${nextVal}/${totalVal}${suffix}]`;
+        });
+      } else if (remRegex.test(t.name)) {
+        t.name = t.name.replace(remRegex, (match, rem, suffix) => {
+          const nextRem = Math.max(0, parseInt(rem) - 1);
+          if (nextRem === 0) shouldComplete = true;
+          return `[restan ${nextRem}${suffix}]`;
+        });
+      } else if (countRegex.test(t.name)) {
+        t.name = t.name.replace(countRegex, (match, cur, unit) => {
+          const nextVal = parseInt(cur) + 1;
+          const u = unit ? (unit.toLowerCase() === 'x' ? 'x' : ' ' + unit.trim()) : ' ses.';
+          return `[${nextVal}${u}]`;
+        });
+      } else {
+        // Si es una tarea cíclica sin contador previo en el título, añade [1 ses.]
+        t.name = `${t.name.trim()} [1 ses.]`;
+      }
+
+      // Si la tarea es cíclica, registrar la sesión en el historial y avanzar la fecha
+      if (t.recurrence && t.recurrence !== 'none') {
+        const baseDate = t.dueDate || today;
+        const nextDate = advanceDate(baseDate, t.recurrence);
+
+        const completedSessionCopy = {
+          ...t,
+          id: 't_' + Date.now() + '_ses',
+          name: oldName,
+          status: 'Completed',
+          recurrence: 'none',
+          statusDate: today
+        };
+        db.tasks.unshift(completedSessionCopy);
+
+        if (t.dueDate) {
+          t.dueDate = nextDate;
+        }
+        if (t.status === 'Inbox') t.status = 'Next Action';
+      }
+
+      t.statusDate = today;
+
+      if (shouldComplete) {
+        if (confirm(`¡Has completado todas las sesiones programadas de "${t.name}"! ¿Marcar la actividad como Completada definitivamente?`)) {
+          t.status = 'Completed';
+          t.recurrence = 'none';
+        }
+      }
+
+      persistData();
     }
 
     // --- FILTRADO DE PROYECTOS ACTIVOS ---
@@ -1289,8 +1421,232 @@
       persistData();
     }
 
+    // --- BUSCADOR GLOBAL OCULTO (DOBLE TOQUE EN MEM O TECLA /) ---
+    function triggerGlobalSearch() {
+      const modal = document.getElementById('search-modal');
+      const input = document.getElementById('global-search-input');
+      modal.classList.add('open');
+      input.value = '';
+      document.getElementById('global-search-results').innerHTML = '<p style="font-size:0.85rem; color:var(--text-muted); padding:14px; text-align:center;">Escribe para buscar instantáneamente en todo tu GTD...</p>';
+      setTimeout(() => input.focus(), 80);
+    }
+
+    function closeGlobalSearch() {
+      document.getElementById('search-modal').classList.remove('open');
+    }
+
+    function handleGlobalSearch(query) {
+      const q = query.trim().toLowerCase();
+      const container = document.getElementById('global-search-results');
+      if (!q) {
+        container.innerHTML = '<p style="font-size:0.85rem; color:var(--text-muted); padding:14px; text-align:center;">Escribe para buscar instantáneamente en todo tu GTD...</p>';
+        return;
+      }
+
+      const matchedTasks = db.tasks.filter(t => 
+        t.status !== 'Eliminated' && (
+          (t.name && t.name.toLowerCase().includes(q)) ||
+          (t.description && t.description.toLowerCase().includes(q)) ||
+          (t.situation && t.situation.toLowerCase().includes(q)) ||
+          (t.person && t.person.toLowerCase().includes(q))
+        )
+      );
+
+      const matchedProjects = db.projects.filter(p => 
+        (p.name && p.name.toLowerCase().includes(q)) ||
+        (p.notes && p.notes.toLowerCase().includes(q)) ||
+        (p.area && p.area.toLowerCase().includes(q)) ||
+        (p.person && p.person.toLowerCase().includes(q))
+      );
+
+      let html = '';
+
+      if (matchedTasks.length > 0) {
+        html += `<div class="search-group-title">Tareas (${matchedTasks.length})</div>`;
+        html += matchedTasks.slice(0, 20).map(t => {
+          const p = db.projects.find(x => x.id === t.projectId);
+          return `
+            <div class="search-item" onclick="closeGlobalSearch(); openEditModal('${t.id}')">
+              <div>
+                <strong>${escapeHTML(t.name)}</strong>
+                <div style="font-size:0.75rem; color:var(--text-muted); margin-top:2px;">
+                  <span class="tag" style="font-size:0.7rem; padding:1px 5px;">${t.status}</span>
+                  ${p ? ` • <span>📁 ${escapeHTML(p.name)}</span>` : ''}
+                  ${t.situation ? ` • <span>🏷️ ${escapeHTML(t.situation)}</span>` : ''}
+                  ${t.person ? ` • <span>👤 ${escapeHTML(t.person)}</span>` : ''}
+                </div>
+              </div>
+              <span style="font-size:0.75rem; color:var(--primary); font-weight:600; white-space:nowrap;">Abrir →</span>
+            </div>
+          `;
+        }).join('');
+      }
+
+      if (matchedProjects.length > 0) {
+        html += `<div class="search-group-title">Proyectos (${matchedProjects.length})</div>`;
+        html += matchedProjects.slice(0, 10).map(p => `
+          <div class="search-item" onclick="closeGlobalSearch(); goToProject('${p.id}')">
+            <div>
+              <strong>📁 ${escapeHTML(p.name)}</strong>
+              <span class="tag" style="font-size:0.7rem; padding:1px 5px; margin-left:6px;">${escapeHTML(p.area)}</span>
+            </div>
+            <span style="font-size:0.75rem; color:var(--primary); font-weight:600; white-space:nowrap;">Ver →</span>
+          </div>
+        `).join('');
+      }
+
+      if (matchedTasks.length === 0 && matchedProjects.length === 0) {
+        html = `<p style="font-size:0.85rem; color:var(--text-muted); padding:16px; text-align:center;">Sin resultados para "${escapeHTML(query)}".</p>`;
+      }
+
+      container.innerHTML = html;
+    }
+
+    // --- MODO GUIADO INBOX ZERO (CLARIFICACIÓN 1 A 1) ---
+    function openInboxWizard() {
+      inboxWizardIndex = 0;
+      renderInboxWizardStep();
+      document.getElementById('inbox-wizard-modal').classList.add('open');
+    }
+
+    function closeInboxWizard() {
+      document.getElementById('inbox-wizard-modal').classList.remove('open');
+      render();
+    }
+
+    function renderInboxWizardStep() {
+      const inboxTasks = db.tasks.filter(t => t.status === 'Inbox');
+      const modalContent = document.getElementById('inbox-wizard-content');
+
+      if (inboxTasks.length === 0) {
+        modalContent.innerHTML = `
+          <div style="text-align:center; padding:24px 12px;">
+            <div style="font-size:2.6rem; margin-bottom:10px;">✨</div>
+            <h3 style="margin-bottom:8px;">¡Inbox a Cero!</h3>
+            <p style="font-size:0.88rem; color:var(--text-muted); margin-bottom:20px;">
+              Has clarificado todas las entradas pendientes. Tu mente y tu bandeja están despejadas.
+            </p>
+            <button class="btn btn-primary" onclick="closeInboxWizard()">Terminar</button>
+          </div>
+        `;
+        return;
+      }
+
+      if (inboxWizardIndex >= inboxTasks.length) inboxWizardIndex = 0;
+      if (inboxWizardIndex < 0) inboxWizardIndex = inboxTasks.length - 1;
+
+      const t = inboxTasks[inboxWizardIndex];
+      const progressPct = Math.round(((inboxWizardIndex + 1) / inboxTasks.length) * 100);
+      const allSits = getAllSituations();
+      const allPersons = getAllPersonsHistory();
+
+      const projOptions = `<option value="">(Sin Proyecto)</option>` + db.projects.map(p => `<option value="${p.id}" ${t.projectId === p.id ? 'selected' : ''}>${escapeHTML(p.name)} (${escapeHTML(p.area)})</option>`).join('');
+
+      modalContent.innerHTML = `
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <span style="font-size:0.78rem; font-weight:700; color:var(--primary); text-transform:uppercase;">⚡ Clarificando Inbox (${inboxWizardIndex + 1} de ${inboxTasks.length})</span>
+          <button class="btn btn-secondary btn-sm" onclick="closeInboxWizard()">✕ Cerrar</button>
+        </div>
+        <div class="wizard-progress">
+          <div class="wizard-progress-bar" style="width:${progressPct}%;"></div>
+        </div>
+
+        <div class="form-group" style="margin-bottom:10px;">
+          <label>Acción (Reformúlala si es necesario para que sea concreta y física)</label>
+          <input type="text" id="wiz-title" value="${escapeHTML(t.name)}">
+        </div>
+
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px; margin-bottom:10px;">
+          <div class="form-group">
+            <label>Proyecto</label>
+            <select id="wiz-project">${projOptions}</select>
+          </div>
+          <div class="form-group">
+            <label>Situación / Contexto</label>
+            <input type="text" id="wiz-sit" list="wiz-sit-list" value="${escapeHTML(t.situation || '')}" placeholder="Ej: @Despacho">
+            <datalist id="wiz-sit-list">
+              ${allSits.map(s => `<option value="${escapeHTML(s)}">`).join('')}
+            </datalist>
+          </div>
+        </div>
+
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px; margin-bottom:10px;">
+          <div class="form-group">
+            <label>Persona Asociada</label>
+            <input type="text" id="wiz-person" list="wiz-person-list" value="${escapeHTML(t.person || '')}" placeholder="Ej: Francesco Russo">
+            <datalist id="wiz-person-list">
+              ${allPersons.map(p => `<option value="${escapeHTML(p)}">`).join('')}
+            </datalist>
+          </div>
+          <div class="form-group">
+            <label>Fecha Límite (opcional)</label>
+            <input type="date" id="wiz-due" value="${t.dueDate || ''}">
+          </div>
+        </div>
+
+        <div class="form-group" style="margin-bottom:16px;">
+          <label>Notas / Apuntes de contexto</label>
+          <textarea id="wiz-desc" rows="2" placeholder="Detalles opcionales...">${escapeHTML(t.description || '')}</textarea>
+        </div>
+
+        <div style="font-size:0.75rem; font-weight:700; color:var(--text-muted); margin-bottom:8px; text-transform:uppercase;">¿Cuál es el siguiente paso para este elemento?</div>
+
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px; margin-bottom:8px;">
+          <button class="btn btn-primary" onclick="applyInboxWizardDecision('${t.id}', 'Next Action')">🎯 Next Action</button>
+          <button class="btn btn-secondary" style="background:var(--success-bg); color:var(--success); border-color:#bbf7d0;" onclick="applyInboxWizardDecision('${t.id}', 'Completed')">✓ En &lt; 2 min (Hecho)</button>
+        </div>
+
+        <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:6px; margin-bottom:14px;">
+          <button class="btn btn-secondary btn-sm" onclick="applyInboxWizardDecision('${t.id}', 'Delegated')">⏳ Delegar</button>
+          <button class="btn btn-secondary btn-sm" onclick="applyInboxWizardDecision('${t.id}', 'Reevaluate')">💤 Incubadora</button>
+          <button class="btn btn-secondary btn-sm" style="color:var(--danger);" onclick="applyInboxWizardDecision('${t.id}', 'Delete')">🗑️ Descartar</button>
+        </div>
+
+        <div style="display:flex; justify-content:space-between; align-items:center; border-top:1px solid var(--border-light); padding-top:10px;">
+          <button class="btn btn-secondary btn-sm" onclick="inboxWizardIndex--; renderInboxWizardStep();" ${inboxTasks.length <= 1 ? 'disabled' : ''}>← Anterior</button>
+          <button class="btn btn-secondary btn-sm" onclick="inboxWizardIndex++; renderInboxWizardStep();" ${inboxTasks.length <= 1 ? 'disabled' : ''}>Saltar por ahora →</button>
+        </div>
+      `;
+    }
+
+    function applyInboxWizardDecision(taskId, decision) {
+      const t = db.tasks.find(x => x.id === taskId);
+      if (!t) return;
+
+      const today = new Date().toISOString().split('T')[0];
+
+      if (decision === 'Delete') {
+        db.tasks = db.tasks.filter(x => x.id !== taskId);
+        persistData();
+        renderInboxWizardStep();
+        return;
+      }
+
+      const newTitle = document.getElementById('wiz-title').value.trim();
+      if (newTitle) t.name = newTitle;
+      t.projectId = document.getElementById('wiz-project').value || null;
+      t.situation = document.getElementById('wiz-sit').value.trim() || null;
+      t.person = document.getElementById('wiz-person').value.trim() || null;
+      t.dueDate = document.getElementById('wiz-due').value || null;
+      t.description = document.getElementById('wiz-desc').value.trim() || null;
+      t.status = decision;
+      t.statusDate = today;
+
+      persistData();
+      renderInboxWizardStep();
+    }
+
     // --- NAVEGACIÓN Y VISTAS ---
     function switchTab(tab) {
+      const now = Date.now();
+      // Doble toque rápido en MEM (<320ms) lanza el Buscador Global Instantáneo
+      if (tab === 'mem' && currentTab === 'mem' && (now - lastMemTap) < 320) {
+        triggerGlobalSearch();
+        lastMemTap = 0;
+        return;
+      }
+      lastMemTap = now;
+
       currentTab = tab;
       pendingSlideDirection = null;
       document.querySelectorAll('.nav-btn').forEach((btn, idx) => {
@@ -1466,10 +1822,16 @@
       container.innerHTML = html;
     }
 
+    // --- VISTA INBOX (CON BOTÓN DE FLUJO GUIADO INBOX ZERO) ---
     function renderInbox(container, today) {
       const inboxTasks = db.tasks.filter(t => t.status === 'Inbox');
-      let html = `<div class="section-title">Bandeja de Entrada (${inboxTasks.length})</div>`;
-      html += inboxTasks.length === 0 ? `<p style="color:var(--text-muted); font-size:0.9rem;">Bandeja limpia.</p>` : inboxTasks.map(t => renderTaskCard(t, today)).join('');
+      let html = `
+        <div style="display:flex; justify-content:space-between; align-items:center; margin: 16px 0 12px;">
+          <div class="section-title" style="margin:0;">Bandeja de Entrada (${inboxTasks.length})</div>
+          ${inboxTasks.length > 0 ? `<button class="btn btn-primary btn-sm" onclick="openInboxWizard()">⚡ Procesar Inbox (1 a 1)</button>` : ''}
+        </div>
+      `;
+      html += inboxTasks.length === 0 ? `<p style="color:var(--text-muted); font-size:0.9rem;">✨ Bandeja limpia (Inbox Zero).</p>` : inboxTasks.map(t => renderTaskCard(t, today)).join('');
       container.innerHTML = html;
     }
 
@@ -1857,10 +2219,15 @@
           checklistState = JSON.parse(localStorage.getItem('gtd_review_checklist') || '{}');
         } catch(e){}
 
+        const inboxCount = db.tasks.filter(t => t.status === 'Inbox').length;
+
         html += `
           <div style="display:flex; justify-content:space-between; align-items:center; margin-top:20px;">
             <span class="section-title" style="margin:0;">Checklist de Revisión Semanal</span>
-            <button class="btn btn-secondary btn-sm" onclick="resetReviewChecklist()">Reiniciar Checklist</button>
+            <div style="display:flex; gap:6px;">
+              ${inboxCount > 0 ? `<button class="btn btn-primary btn-sm" onclick="openInboxWizard()">⚡ Procesar Inbox (${inboxCount})</button>` : ''}
+              <button class="btn btn-secondary btn-sm" onclick="resetReviewChecklist()">Reiniciar Checklist</button>
+            </div>
           </div>
           <div style="margin-top:10px;">
             ${defaultChecklist.map(item => `
@@ -1929,11 +2296,16 @@
         repeatBadge = `<span class="tag tag-repeat">🔁 ${repeatLabels[t.recurrence] || t.recurrence}</span>`;
       }
 
+      const showSessionBtn = t.status !== 'Completed' && hasSessionCounter(t);
+
       return `
         <div class="task-card">
           <div class="task-row">
             <span class="task-title" onclick="openEditModal('${t.id}')">${escapeHTML(t.name)}</span>
-            ${t.status !== 'Completed' ? `<button class="btn btn-secondary btn-sm" title="Completar" onclick="setTaskStatus('${t.id}', 'Completed')">✓</button>` : ''}
+            <div style="display:flex; gap:6px; align-items:center;">
+              ${showSessionBtn ? `<button class="btn btn-session btn-sm" title="Contar una sesión más" onclick="incrementTaskSession('${t.id}')">⚡ +1 ses.</button>` : ''}
+              ${t.status !== 'Completed' ? `<button class="btn btn-secondary btn-sm" title="Completar definitivamente" onclick="setTaskStatus('${t.id}', 'Completed')">✓</button>` : ''}
+            </div>
           </div>
           <div class="task-meta">
             ${t.status !== 'Next Action' && t.status !== 'Inbox' ? `<span class="tag">${t.status}</span>` : ''}
@@ -2178,7 +2550,7 @@
     let touchStartTime = 0;
 
     window.addEventListener('touchstart', (e) => {
-      if (document.querySelector('.modal-overlay.open')) return;
+      if (document.querySelector('.modal-overlay.open') || document.getElementById('search-modal')?.classList.contains('open')) return;
       if (e.target.closest('input, textarea, select, .filter-bar, .autocomplete-dropdown')) return;
       
       const touch = e.changedTouches[0];
@@ -2188,7 +2560,7 @@
     }, { passive: true });
 
     window.addEventListener('touchend', (e) => {
-      if (document.querySelector('.modal-overlay.open')) return;
+      if (document.querySelector('.modal-overlay.open') || document.getElementById('search-modal')?.classList.contains('open')) return;
       if (e.target.closest('input, textarea, select, .filter-bar, .autocomplete-dropdown')) return;
 
       const touch = e.changedTouches[0];
@@ -2278,6 +2650,8 @@
       }
 
       if (e.key === 'Escape') {
+        closeGlobalSearch();
+        closeInboxWizard();
         closeCaptureModal();
         closeEditModal();
         closeProjectModal();
@@ -2293,7 +2667,10 @@
 
       const key = e.key.toLowerCase();
 
-      if (key === '+' || key === 'c') {
+      if (key === '/') {
+        e.preventDefault();
+        triggerGlobalSearch();
+      } else if (key === '+' || key === 'c') {
         e.preventDefault();
         openCaptureModal();
       } else if (key === 'm' || key === '1') {
@@ -2310,7 +2687,8 @@
         switchTab('review');
       }
     });
-// Sincronizar automáticamente en cuanto el teléfono recupere cobertura
+
+    // Reconexión automática cuando vuelve la cobertura
     window.addEventListener('online', () => {
       if (localStorage.getItem('gtd_pending_sync') === 'true') {
         persistData();
@@ -2322,6 +2700,7 @@
     window.addEventListener('offline', () => {
       updateSyncBadge('Modo Offline', 'error');
     });
+
     window.addEventListener('DOMContentLoaded', loadData);
   </script>
 </body>
