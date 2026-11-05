@@ -49,6 +49,20 @@
   ],
   "tasks": [
     {
+      "id": "t_1793847724687",
+      "name": "Completar meditación 79",
+      "status": "Next Action",
+      "dueDate": "2026-11-05",
+      "startTime": null,
+      "endTime": null,
+      "projectId": null,
+      "situation": null,
+      "person": null,
+      "recurrence": "none",
+      "statusDate": "2026-11-05",
+      "description": null
+    },
+    {
       "id": "t_1793762519082_ses",
       "name": "cug",
       "status": "Next Action",
