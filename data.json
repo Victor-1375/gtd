@@ -49,6 +49,20 @@
   ],
   "tasks": [
     {
+      "id": "t_1793890002290",
+      "name": "Terminar rtm sg noviembre [3 ses.]",
+      "status": "Next Action",
+      "dueDate": "2026-11-06",
+      "startTime": null,
+      "endTime": null,
+      "projectId": "p_1793154290032",
+      "situation": null,
+      "person": null,
+      "recurrence": "none",
+      "statusDate": "2026-11-05",
+      "description": "II) Invitados a participar en el Reino de Dios\n\n1. La esperanza del cielo: «Ni ojo vio ni oído oyó» (1 Cor 2,9). «Todo el bien sin mezcla de mal alguno» (Suma Teológica, q. 67 a.7). «Señor, deseo ver tu rostro» (Sal 26). La promesa del ciento por uno y la vida eterna. Vivir de esperanza. Estamos llamados a ser instrumentos de esperanza. Santa María, esperanza nuestra.\n\n2. Nuestro Señor Jesucristo, Rey del Universo. El reinado de Cristo en mi alma: paz interior y verdadera libertad. El reinado de Cristo en las familias: «Hogares luminosos y alegres». Testigos de Cristo para otras familias: apostolado familiar. El reinado de Cristo en el mundo: sentido del apostolado y del trabajo como colaboración en la extensión del Reino de Dios. Orientar con sentido cristiano las profesiones, las instituciones y las estructuras humanas. Cooperar con la redención y cooperar con el bien temporal de la humanidad. Una parcela humana que justifica nuestra existencia."
+    },
+    {
       "id": "t_1793847724687",
       "name": "Completar meditación 79",
       "status": "Completed",
