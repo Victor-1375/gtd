@@ -627,7 +627,7 @@
       };
     }
 
-    async function loadData() {
+async function loadData() {
       const local = localStorage.getItem('gtd_db');
       if (local) {
         try { 
@@ -646,7 +646,7 @@
         return;
       }
 
-      // Si hay capturas hechas sin conexión, subirlas primero a GitHub antes de descargar
+      // Si hay cambios locales pendientes de subir, obtenemos primero el SHA actual del servidor y subimos
       if (localStorage.getItem('gtd_pending_sync') === 'true') {
         updateSyncBadge('Subiendo pendientes...', 'syncing');
         await persistData();
@@ -655,7 +655,9 @@
 
       updateSyncBadge('Sincronizando...', 'syncing');
       try {
-        const res = await fetch(`https://api.github.com/repos/${cfg.owner}/${cfg.repo}/contents/data.json`, {
+        // Evitar caché del navegador con ?t=Date.now() y cache: 'no-store'
+        const res = await fetch(`https://api.github.com/repos/${cfg.owner}/${cfg.repo}/contents/data.json?t=${Date.now()}`, {
+          cache: 'no-store',
           headers: { 'Authorization': `token ${cfg.token}`, 'Accept': 'application/vnd.github.v3+json' }
         });
 
@@ -676,7 +678,8 @@
           updateSyncBadge('Error Sync', 'error');
         }
 
-        const resIcs = await fetch(`https://api.github.com/repos/${cfg.owner}/${cfg.repo}/contents/calendar.ics`, {
+        const resIcs = await fetch(`https://api.github.com/repos/${cfg.owner}/${cfg.repo}/contents/calendar.ics?t=${Date.now()}`, {
+          cache: 'no-store',
           headers: { 'Authorization': `token ${cfg.token}`, 'Accept': 'application/vnd.github.v3+json' }
         });
         if (resIcs.status === 200) {
@@ -698,25 +701,65 @@
       updateSyncBadge('Guardando...', 'syncing');
       try {
         const jsonContent = utf8ToBase64(JSON.stringify(db, null, 2));
-        const resData = await fetch(`https://api.github.com/repos/${cfg.owner}/${cfg.repo}/contents/data.json`, {
+
+        // 1. Intento directo de subida
+        let resData = await fetch(`https://api.github.com/repos/${cfg.owner}/${cfg.repo}/contents/data.json`, {
           method: 'PUT',
           headers: { 'Authorization': `token ${cfg.token}`, 'Content-Type': 'application/json' },
           body: JSON.stringify({ message: "Update GTD data", content: jsonContent, sha: ghShaData || undefined })
         });
+
+        // 2. Si falla por conflicto de SHA entre dispositivos (409 o 422), pedir el SHA fresco y reintentar
+        if (!resData.ok && (resData.status === 409 || resData.status === 422)) {
+          const checkRes = await fetch(`https://api.github.com/repos/${cfg.owner}/${cfg.repo}/contents/data.json?t=${Date.now()}`, {
+            cache: 'no-store',
+            headers: { 'Authorization': `token ${cfg.token}`, 'Accept': 'application/vnd.github.v3+json' }
+          });
+          if (checkRes.ok) {
+            const checkJson = await checkRes.json();
+            ghShaData = checkJson.sha;
+            resData = await fetch(`https://api.github.com/repos/${cfg.owner}/${cfg.repo}/contents/data.json`, {
+              method: 'PUT',
+              headers: { 'Authorization': `token ${cfg.token}`, 'Content-Type': 'application/json' },
+              body: JSON.stringify({ message: "Update GTD data", content: jsonContent, sha: ghShaData })
+            });
+          }
+        }
+
         if (resData.ok) {
           const d = await resData.json();
           ghShaData = d.content.sha;
           localStorage.removeItem('gtd_pending_sync');
         } else {
           localStorage.setItem('gtd_pending_sync', 'true');
+          updateSyncBadge('Error al subir (Pendiente)', 'error');
+          return;
         }
 
+        // Actualizar Calendar (.ics) con el mismo blindaje
         const icsContent = utf8ToBase64(generateICS());
-        const resIcs = await fetch(`https://api.github.com/repos/${cfg.owner}/${cfg.repo}/contents/calendar.ics`, {
+        let resIcs = await fetch(`https://api.github.com/repos/${cfg.owner}/${cfg.repo}/contents/calendar.ics`, {
           method: 'PUT',
           headers: { 'Authorization': `token ${cfg.token}`, 'Content-Type': 'application/json' },
           body: JSON.stringify({ message: "Update GTD Calendar feed", content: icsContent, sha: ghShaIcs || undefined })
         });
+
+        if (!resIcs.ok && (resIcs.status === 409 || resIcs.status === 422)) {
+          const checkIcs = await fetch(`https://api.github.com/repos/${cfg.owner}/${cfg.repo}/contents/calendar.ics?t=${Date.now()}`, {
+            cache: 'no-store',
+            headers: { 'Authorization': `token ${cfg.token}`, 'Accept': 'application/vnd.github.v3+json' }
+          });
+          if (checkIcs.ok) {
+            const icsJ = await checkIcs.json();
+            ghShaIcs = icsJ.sha;
+            resIcs = await fetch(`https://api.github.com/repos/${cfg.owner}/${cfg.repo}/contents/calendar.ics`, {
+              method: 'PUT',
+              headers: { 'Authorization': `token ${cfg.token}`, 'Content-Type': 'application/json' },
+              body: JSON.stringify({ message: "Update GTD Calendar feed", content: icsContent, sha: ghShaIcs })
+            });
+          }
+        }
+
         if (resIcs.ok) {
           const i = await resIcs.json();
           ghShaIcs = i.content.sha;
