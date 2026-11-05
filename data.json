@@ -49,6 +49,20 @@
   ],
   "tasks": [
     {
+      "id": "t_1793890061054",
+      "name": "Terminar rtm sm noviembre [2 ses.]",
+      "status": "Next Action",
+      "dueDate": "2026-11-05",
+      "startTime": null,
+      "endTime": null,
+      "projectId": null,
+      "situation": null,
+      "person": null,
+      "recurrence": "none",
+      "statusDate": "2026-11-05",
+      "description": "2. Difundir el reinado de Cristo entre los hombres.\nEspíritu de servicio. Como rey le buscan los Magos y le teme Herodes, como rey le quisieron aclamar las multitudes. Como verdadero rey muere en el madero y se presenta a los apóstoles ya resucitado: «Se me ha dado toda potestad en el cielo y en la tierra» (Mt 28,18). El Señor nos invita a imitarlo en el servicio: cfr. Mt 20,25-28; Jn 13,12-17. Sentido del apostolado: servir al mundo y a los demás. Regnare Christum volumus! «Infunde en nuestros corazones celo ardiente por las almas» (Consagración al Corazón Sacratísimo de Jesús). El afán del alma sacerdotal de llevarlo todo al Señor, de ponerlo en la cumbre de todas las actividades; el trabajo como colaboración para el Reino de Dios.\n\n3. El reino de Cristo y la libertad de los hijos de Dios.\nHemos sido «llamados a la libertad» (Gal 5,13). Al dejar que Cristo reine en nuestros corazones adquirimos la auténtica libertad y vencemos la esclavitud del pecado: «Si vosotros permanecéis en mi palabra, sois en verdad discípulos míos, conoceréis la verdad, y la verdad os hará libres» (Jn 8,31-32). La libertad de los hijos de Dios. «La verdadera libertad de espíritu es esta capacidad y actitud habitual de obrar por amor, especialmente en el empeño de seguir lo que, en cada circunstancia, Dios le pide a cada uno» (Carta pastoral, 9-I-2018, n. 5). La alegría y la libertad van unidas: hacer libremente por amor todas las cosas porque me da la gana; también podemos hacer con alegría lo que no nos gusta si lo hacemos por amor (cfr. ibidem, n. 6). Entregamos al Señor nuestros corazones para que no tengamos otra libertad que la de amarle (cfr. Consagración al Corazón Sacratísimo de Jesús)."
+    },
+    {
       "id": "t_1793890002290",
       "name": "Terminar rtm sg noviembre [3 ses.]",
       "status": "Next Action",
