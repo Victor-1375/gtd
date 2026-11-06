@@ -49,6 +49,20 @@
   ],
   "tasks": [
     {
+      "id": "t_1793986586113",
+      "name": "Pedir cita cédula extranjería",
+      "status": "Next Action",
+      "dueDate": "2026-11-08",
+      "startTime": "17:00",
+      "endTime": "18:00",
+      "projectId": null,
+      "situation": null,
+      "person": null,
+      "recurrence": "none",
+      "statusDate": "2026-11-06",
+      "description": "https://apps.migracioncolombia.gov.co/citas"
+    },
+    {
       "id": "t_1793986236159",
       "name": "rtm sg nog [0/2]",
       "status": "Next Action",
