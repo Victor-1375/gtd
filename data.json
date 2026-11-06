@@ -49,6 +49,34 @@
   ],
   "tasks": [
     {
+      "id": "t_1793986236159",
+      "name": "rtm sg nog [0/2]",
+      "status": "Next Action",
+      "dueDate": "2026-11-06",
+      "startTime": null,
+      "endTime": null,
+      "projectId": null,
+      "situation": null,
+      "person": null,
+      "recurrence": "none",
+      "statusDate": "2026-11-06",
+      "description": null
+    },
+    {
+      "id": "t_1793986212235",
+      "name": "Meditación Monteverde",
+      "status": "Next Action",
+      "dueDate": "2026-11-06",
+      "startTime": null,
+      "endTime": null,
+      "projectId": null,
+      "situation": null,
+      "person": null,
+      "recurrence": "none",
+      "statusDate": "2026-11-06",
+      "description": null
+    },
+    {
       "id": "t_1793754045382",
       "name": "Prueba sin conexión",
       "status": "Completed",
