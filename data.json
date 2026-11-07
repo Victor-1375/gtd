@@ -58,6 +58,20 @@
   ],
   "tasks": [
     {
+      "id": "t_1794051848354",
+      "name": "Almuerzo Checho",
+      "status": "Next Action",
+      "dueDate": "2026-11-11",
+      "startTime": "14:00",
+      "endTime": "15:30",
+      "projectId": null,
+      "situation": null,
+      "person": "Checho Pardo",
+      "recurrence": "none",
+      "statusDate": "2026-11-07",
+      "description": null
+    },
+    {
       "id": "t_1794003983232",
       "name": "Santiago Valderrama",
       "status": "Next Action",
