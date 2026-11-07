@@ -88,7 +88,7 @@
     {
       "id": "t_1793986236159",
       "name": "rtm sg nog [0/2]",
-      "status": "Next Action",
+      "status": "Completed",
       "dueDate": "2026-11-06",
       "startTime": null,
       "endTime": null,
@@ -96,7 +96,7 @@
       "situation": null,
       "person": null,
       "recurrence": "none",
-      "statusDate": "2026-11-06",
+      "statusDate": "2026-11-07",
       "description": null
     },
     {
