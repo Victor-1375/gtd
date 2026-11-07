@@ -242,7 +242,7 @@
     {
       "id": "t_1793232564220",
       "name": "Llamar Marcos Ajuchán",
-      "status": "Next Action",
+      "status": "Completed",
       "dueDate": null,
       "startTime": null,
       "endTime": null,
@@ -250,7 +250,7 @@
       "situation": "Llamadas",
       "person": null,
       "recurrence": "none",
-      "statusDate": "2026-10-29",
+      "statusDate": "2026-11-07",
       "description": null
     },
     {
