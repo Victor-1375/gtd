@@ -58,6 +58,20 @@
   ],
   "tasks": [
     {
+      "id": "t_1794257270171",
+      "name": "Conversación Miguel Duarte",
+      "status": "Next Action",
+      "dueDate": "2026-11-11",
+      "startTime": "16:30",
+      "endTime": "17:30",
+      "projectId": "p_1793154290032",
+      "situation": null,
+      "person": null,
+      "recurrence": "none",
+      "statusDate": "2026-11-09",
+      "description": null
+    },
+    {
       "id": "t_1794256990264",
       "name": "Enviar a Checho la siesta",
       "status": "Next Action",
