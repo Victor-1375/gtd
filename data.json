@@ -58,6 +58,20 @@
   ],
   "tasks": [
     {
+      "id": "t_1794256927528",
+      "name": "Reunión Raíces Profundas",
+      "status": "Next Action",
+      "dueDate": "2026-11-12",
+      "startTime": "10:00",
+      "endTime": "11:15",
+      "projectId": null,
+      "situation": null,
+      "person": null,
+      "recurrence": "none",
+      "statusDate": "2026-11-09",
+      "description": null
+    },
+    {
       "id": "t_1794051848354",
       "name": "Almuerzo Checho",
       "status": "Next Action",
