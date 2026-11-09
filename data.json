@@ -58,6 +58,20 @@
   ],
   "tasks": [
     {
+      "id": "t_1794257337240",
+      "name": "Preparar sesión Grandes Libros",
+      "status": "Next Action",
+      "dueDate": "2026-11-10",
+      "startTime": null,
+      "endTime": null,
+      "projectId": null,
+      "situation": null,
+      "person": null,
+      "recurrence": "none",
+      "statusDate": "2026-11-09",
+      "description": null
+    },
+    {
       "id": "t_1794257270171",
       "name": "Conversación Miguel Duarte",
       "status": "Next Action",
