@@ -102,7 +102,7 @@
     {
       "id": "t_1794256952402",
       "name": "Review antroposofía",
-      "status": "Next Action",
+      "status": "Completed",
       "dueDate": "2026-11-09",
       "startTime": null,
       "endTime": null,
@@ -110,7 +110,7 @@
       "situation": null,
       "person": null,
       "recurrence": "none",
-      "statusDate": "2026-11-09",
+      "statusDate": "2026-11-10",
       "description": null
     },
     {
