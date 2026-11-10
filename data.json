@@ -424,14 +424,15 @@
       "id": "t_1793148596574",
       "name": "Escribir abstract",
       "status": "Next Action",
-      "dueDate": "2026-11-10",
+      "dueDate": "2026-11-28",
       "startTime": null,
       "endTime": null,
       "projectId": "p_1793148552654",
       "situation": null,
       "person": "Don Francesco Russo",
       "description": null,
-      "recurrence": "none"
+      "recurrence": "none",
+      "statusDate": "2026-11-10"
     },
     {
       "id": "t_1793148288340",
