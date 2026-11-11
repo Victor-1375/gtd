@@ -67,6 +67,20 @@
   ],
   "tasks": [
     {
+      "id": "t_1794439844295",
+      "name": "Buscar cosas de Lorenzo Milani y Antonino Bello",
+      "status": "Next Action",
+      "dueDate": null,
+      "startTime": null,
+      "endTime": null,
+      "projectId": "p_1794439777276",
+      "situation": null,
+      "person": "Andrés Cárdenas",
+      "recurrence": "none",
+      "statusDate": "2026-11-11",
+      "description": null
+    },
+    {
       "id": "t_1794439650075",
       "name": "Grabar meditaciones rtm marzo 2027",
       "status": "Next Action",
