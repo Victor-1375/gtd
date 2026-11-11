@@ -368,7 +368,7 @@
     {
       "id": "t_1793229622522",
       "name": "Comentar con Alejo Macía sobre las clases",
-      "status": "Next Action",
+      "status": "Reevaluate",
       "dueDate": null,
       "startTime": null,
       "endTime": null,
@@ -376,7 +376,7 @@
       "situation": null,
       "person": "Alejo Macía",
       "recurrence": "none",
-      "statusDate": "2026-10-28",
+      "statusDate": "2026-11-11",
       "description": "Comentar sobre su experiencia en las clases con las chicas de Confirmación."
     },
     {
