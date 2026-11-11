@@ -55,7 +55,7 @@
     }
     .header-top { display: flex; justify-content: space-between; align-items: center; max-width: 800px; margin: 0 auto; }
     .header-title { font-size: 1.1rem; font-weight: 700; letter-spacing: -0.02em; }
-    .status-badge { font-size: 0.75rem; padding: 3px 9px; border-radius: 999px; background: #e2e8f0; color: var(--text-muted); font-weight: 600; }
+    .status-badge { font-size: 0.75rem; padding: 3px 9px; border-radius: 999px; background: #e2e8f0; color: var(--text-muted); font-weight: 600; cursor: pointer; }
     .status-badge.syncing { background: #dbeafe; color: var(--primary); }
     .status-badge.synced { background: var(--success-bg); color: var(--success); }
     .status-badge.error { background: var(--danger-bg); color: var(--danger); }
@@ -256,7 +256,7 @@
     <div class="header-top">
       <div class="header-title">Mi GTD</div>
       <div style="display:flex; align-items:center; gap:8px;">
-        <span id="sync-status" class="status-badge">Iniciando...</span>
+        <span id="sync-status" class="status-badge" onclick="loadData()" title="Tocar para sincronizar ahora">Iniciando...</span>
         <button class="btn btn-secondary btn-sm" onclick="openSettingsModal()">⚙ Ajustes</button>
       </div>
     </div>
@@ -559,6 +559,7 @@
       <div class="settings-group">
         <div class="settings-group-title">4. Copias de Seguridad & Limpieza</div>
         <div style="display:flex; flex-wrap:wrap; gap:8px;">
+          <button class="btn btn-primary btn-sm" onclick="forceSyncFromGitHub()">🔄 Forzar Recarga Servidor</button>
           <button class="btn btn-secondary btn-sm" onclick="exportJSON()">Exportar Backup JSON</button>
           <button class="btn btn-secondary btn-sm" onclick="triggerImport()">Importar Backup JSON</button>
           <button class="btn btn-secondary btn-sm" style="color:var(--danger);" onclick="purgeCompletedTasks()">Limpiar Completadas</button>
@@ -603,6 +604,15 @@
     let ghShaData = null;
     let ghShaIcs = null;
 
+    // --- ZONA HORARIA LOCAL DEL DISPOSITIVO ---
+    function getDeviceTimeZone() {
+      try {
+        return Intl.DateTimeFormat().resolvedOptions().timeZone || 'America/Bogota';
+      } catch (e) {
+        return 'America/Bogota';
+      }
+    }
+
     // --- CODIFICACIÓN UTF-8 ---
     function utf8ToBase64(str) {
       const bytes = new TextEncoder().encode(str);
@@ -627,7 +637,7 @@
       };
     }
 
-async function loadData() {
+    async function loadData() {
       const local = localStorage.getItem('gtd_db');
       if (local) {
         try { 
@@ -646,16 +656,9 @@ async function loadData() {
         return;
       }
 
-      // Si hay cambios locales pendientes de subir, obtenemos primero el SHA actual del servidor y subimos
-      if (localStorage.getItem('gtd_pending_sync') === 'true') {
-        updateSyncBadge('Subiendo pendientes...', 'syncing');
-        await persistData();
-        return;
-      }
-
       updateSyncBadge('Sincronizando...', 'syncing');
       try {
-        // Evitar caché del navegador con ?t=Date.now() y cache: 'no-store'
+        // Petición directa sin caché para garantizar que el móvil siempre descargue lo último
         const res = await fetch(`https://api.github.com/repos/${cfg.owner}/${cfg.repo}/contents/data.json?t=${Date.now()}`, {
           cache: 'no-store',
           headers: { 'Authorization': `token ${cfg.token}`, 'Accept': 'application/vnd.github.v3+json' }
@@ -670,6 +673,7 @@ async function loadData() {
           db.projects.forEach(p => { if (!p.status) p.status = 'Active'; });
           db.tasks.forEach(t => { if (!t.recurrence) t.recurrence = 'none'; });
           localStorage.setItem('gtd_db', JSON.stringify(db));
+          localStorage.removeItem('gtd_pending_sync');
           updateSyncBadge('Sincronizado', 'synced');
           render();
         } else if (res.status === 404) {
@@ -702,14 +706,14 @@ async function loadData() {
       try {
         const jsonContent = utf8ToBase64(JSON.stringify(db, null, 2));
 
-        // 1. Intento directo de subida
+        // 1. Intento de subida
         let resData = await fetch(`https://api.github.com/repos/${cfg.owner}/${cfg.repo}/contents/data.json`, {
           method: 'PUT',
           headers: { 'Authorization': `token ${cfg.token}`, 'Content-Type': 'application/json' },
           body: JSON.stringify({ message: "Update GTD data", content: jsonContent, sha: ghShaData || undefined })
         });
 
-        // 2. Si falla por conflicto de SHA entre dispositivos (409 o 422), pedir el SHA fresco y reintentar
+        // 2. Si hay conflicto de versión entre dispositivos (409/422), obtiene el SHA fresco y reintenta automáticamente
         if (!resData.ok && (resData.status === 409 || resData.status === 422)) {
           const checkRes = await fetch(`https://api.github.com/repos/${cfg.owner}/${cfg.repo}/contents/data.json?t=${Date.now()}`, {
             cache: 'no-store',
@@ -732,11 +736,11 @@ async function loadData() {
           localStorage.removeItem('gtd_pending_sync');
         } else {
           localStorage.setItem('gtd_pending_sync', 'true');
-          updateSyncBadge('Error al subir (Pendiente)', 'error');
+          updateSyncBadge('Error al guardar', 'error');
           return;
         }
 
-        // Actualizar Calendar (.ics) con el mismo blindaje
+        // Actualizar Calendar (.ics) con resolución de conflicto
         const icsContent = utf8ToBase64(generateICS());
         let resIcs = await fetch(`https://api.github.com/repos/${cfg.owner}/${cfg.repo}/contents/calendar.ics`, {
           method: 'PUT',
@@ -769,6 +773,16 @@ async function loadData() {
       } catch (e) {
         localStorage.setItem('gtd_pending_sync', 'true');
         updateSyncBadge('Offline (Guardado local)', 'error');
+      }
+    }
+
+    async function forceSyncFromGitHub() {
+      if (confirm("¿Descargar la versión más reciente de GitHub? Se actualizarán todas las tareas sin perder tu Token ni tu configuración.")) {
+        localStorage.removeItem('gtd_pending_sync');
+        localStorage.removeItem('gtd_db');
+        await loadData();
+        alert("¡Sincronización forzada con éxito!");
+        closeSettingsModal();
       }
     }
 
@@ -895,11 +909,9 @@ async function loadData() {
           return `[${nextVal}${u}]`;
         });
       } else {
-        // Si es una tarea cíclica sin contador previo en el título, añade [1 ses.]
         t.name = `${t.name.trim()} [1 ses.]`;
       }
 
-      // Si la tarea es cíclica, registrar la sesión en el historial y avanzar la fecha
       if (t.recurrence && t.recurrence !== 'none') {
         const baseDate = t.dueDate || today;
         const nextDate = advanceDate(baseDate, t.recurrence);
@@ -940,7 +952,7 @@ async function loadData() {
       return p.status === 'Active';
     }
 
-    // --- GENERADOR iCAL / .ICS ---
+    // --- GENERADOR iCAL / .ICS CON ZONA HORARIA LOCAL ---
     function computeEndTime(start) {
       if (!start) return '';
       const [h, m] = start.split(':').map(Number);
@@ -951,6 +963,7 @@ async function loadData() {
     function generateICS() {
       const activeTasksWithDate = db.tasks.filter(t => t.status !== 'Completed' && t.status !== 'Eliminated' && t.dueDate && isTaskProjectActive(t));
       const nowStr = new Date().toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
+      const defaultTz = getDeviceTimeZone();
 
       let lines = [
         'BEGIN:VCALENDAR',
@@ -958,11 +971,14 @@ async function loadData() {
         'PRODID:-//Mi GTD//ES',
         'CALSCALE:GREGORIAN',
         'METHOD:PUBLISH',
-        'X-WR-CALNAME:GTD Tareas'
+        'X-WR-CALNAME:GTD Tareas',
+        `X-WR-TIMEZONE:${defaultTz}`
       ];
 
       activeTasksWithDate.forEach(t => {
         const dateClean = t.dueDate.replace(/-/g, '');
+        const taskTz = t.tz || defaultTz;
+
         lines.push('BEGIN:VEVENT');
         lines.push(`UID:${t.id}@migtd`);
         lines.push(`DTSTAMP:${nowStr}`);
@@ -981,19 +997,20 @@ async function loadData() {
           const startClean = t.startTime.replace(/:/g, '') + '00';
           const endVal = t.endTime || computeEndTime(t.startTime);
           const endClean = endVal.replace(/:/g, '') + '00';
-          lines.push(`DTSTART:${dateClean}T${startClean}`);
-          lines.push(`DTEND:${dateClean}T${endClean}`);
+          lines.push(`DTSTART;TZID=${taskTz}:${dateClean}T${startClean}`);
+          lines.push(`DTEND;TZID=${taskTz}:${dateClean}T${endClean}`);
         } else {
           lines.push(`DTSTART;VALUE=DATE:${dateClean}`);
-          const nextDay = new Date(t.dueDate);
+          const nextDay = new Date(t.dueDate + 'T00:00:00');
           nextDay.setDate(nextDay.getDate() + 1);
-          const nextDayClean = nextDay.toISOString().split('T')[0].replace(/-/g, '');
-          lines.push(`DTEND;VALUE=DATE:${nextDayClean}`);
+          const yyyy = nextDay.getFullYear();
+          const mm = String(nextDay.getMonth() + 1).padStart(2, '0');
+          const dd = String(nextDay.getDate()).padStart(2, '0');
+          lines.push(`DTEND;VALUE=DATE:${yyyy}${mm}${dd}`);
         }
         lines.push('END:VEVENT');
       });
 
-      // Añadir Proyectos Activos con fecha límite al calendario
       const activeProjectsWithDate = db.projects.filter(p => p.status === 'Active' && p.dueDate);
       activeProjectsWithDate.forEach(p => {
         const dateClean = p.dueDate.replace(/-/g, '');
@@ -1006,10 +1023,12 @@ async function loadData() {
         if (p.notes) descParts.push(p.notes);
         lines.push(`DESCRIPTION:${escapeICS(descParts.join(' | '))}`);
         lines.push(`DTSTART;VALUE=DATE:${dateClean}`);
-        const nextDay = new Date(p.dueDate);
+        const nextDay = new Date(p.dueDate + 'T00:00:00');
         nextDay.setDate(nextDay.getDate() + 1);
-        const nextDayClean = nextDay.toISOString().split('T')[0].replace(/-/g, '');
-        lines.push(`DTEND;VALUE=DATE:${nextDayClean}`);
+        const yyyy = nextDay.getFullYear();
+        const mm = String(nextDay.getMonth() + 1).padStart(2, '0');
+        const dd = String(nextDay.getDate()).padStart(2, '0');
+        lines.push(`DTEND;VALUE=DATE:${yyyy}${mm}${dd}`);
         lines.push('END:VEVENT');
       });
 
@@ -1022,7 +1041,7 @@ async function loadData() {
       return str.replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,').replace(/\n/g, '\\n');
     }
 
-    // --- ENLACE DIRECTO GOOGLE CALENDAR ---
+    // --- ENLACE DIRECTO GOOGLE CALENDAR CON ZONA HORARIA AUTOMÁTICA ---
     function openGoogleCalendarTemplate(id) {
       const t = db.tasks.find(x => x.id === id);
       if (!t || !t.dueDate) return;
@@ -1035,16 +1054,20 @@ async function loadData() {
         const endClean = endVal.replace(/:/g, '') + '00';
         datesParam = `${dateClean}T${startClean}/${dateClean}T${endClean}`;
       } else {
-        const nextDay = new Date(t.dueDate);
+        const nextDay = new Date(t.dueDate + 'T00:00:00');
         nextDay.setDate(nextDay.getDate() + 1);
-        const nextClean = nextDay.toISOString().split('T')[0].replace(/-/g, '');
-        datesParam = `${dateClean}/${nextClean}`;
+        const yyyy = nextDay.getFullYear();
+        const mm = String(nextDay.getMonth() + 1).padStart(2, '0');
+        const dd = String(nextDay.getDate()).padStart(2, '0');
+        datesParam = `${dateClean}/${yyyy}${mm}${dd}`;
       }
 
       let desc = t.description || '';
       if (t.person) desc = `[Persona: ${t.person}] ` + desc;
 
-      const url = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(t.name)}&dates=${datesParam}&details=${encodeURIComponent(desc)}`;
+      const taskTz = t.tz || getDeviceTimeZone();
+
+      const url = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(t.name)}&dates=${datesParam}&details=${encodeURIComponent(desc)}&ctz=${encodeURIComponent(taskTz)}`;
       window.open(url, '_blank');
     }
 
@@ -1422,6 +1445,7 @@ async function loadData() {
         person: person,
         recurrence: recurrence,
         statusDate: today,
+        tz: getDeviceTimeZone(),
         description: desc
       });
 
@@ -1674,6 +1698,7 @@ async function loadData() {
       t.description = document.getElementById('wiz-desc').value.trim() || null;
       t.status = decision;
       t.statusDate = today;
+      t.tz = t.tz || getDeviceTimeZone();
 
       persistData();
       renderInboxWizardStep();
@@ -1682,7 +1707,6 @@ async function loadData() {
     // --- NAVEGACIÓN Y VISTAS ---
     function switchTab(tab) {
       const now = Date.now();
-      // Doble toque rápido en MEM (<320ms) lanza el Buscador Global Instantáneo
       if (tab === 'mem' && currentTab === 'mem' && (now - lastMemTap) < 320) {
         triggerGlobalSearch();
         lastMemTap = 0;
@@ -1705,7 +1729,7 @@ async function loadData() {
 
     function setSituationFilter(s) {
       filterSituation = s;
-      if (s !== '') memNextOpen = true; // Se abre automáticamente al elegir un contexto
+      if (s !== '') memNextOpen = true;
       render();
     }
 
@@ -1770,7 +1794,6 @@ async function loadData() {
         html += `<div class="section-title">Para Hoy (${dueToday.length})</div>`;
         html += dueToday.length === 0 ? `<p style="color:var(--text-muted); font-size:0.85rem;">Sin compromisos para hoy.</p>` : dueToday.map(t => renderTaskCard(t, today)).join('');
 
-        // Sección Colapsable para Siguientes Acciones Disponibles
         html += `
           <div style="display:flex; justify-content:space-between; align-items:center; margin-top:24px; cursor:pointer; user-select:none;" onclick="toggleMemNext()">
             <span class="section-title" style="margin:0;">Siguientes Acciones Disponibles (${nextNoDate.length})</span>
@@ -2162,7 +2185,6 @@ async function loadData() {
         html += reevaluate.length === 0 ? `<p style="color:var(--text-muted); font-size:0.85rem;">Nada que reevaluar.</p>` : reevaluate.map(t => renderTaskCard(t, today)).join('');
 
       } else if (reviewSubTab === 'weekly') {
-        // 1. Alerta de Proyectos Encallados (Stalled Projects)
         const activeProjects = db.projects.filter(p => p.status === 'Active');
         const stalledProjects = activeProjects.filter(p => {
           const hasNextAction = db.tasks.some(t => t.projectId === p.id && t.status === 'Next Action');
@@ -2192,7 +2214,6 @@ async function loadData() {
           `;
         }
 
-        // 2. Alerta de Next Actions Estancadas (Regla de las 2 semanas / +14 días)
         const staleNextActions = db.tasks.filter(t => {
           if (t.status !== 'Next Action') return false;
           const sDate = getTaskStatusDate(t, today);
@@ -2245,7 +2266,6 @@ async function loadData() {
           `;
         }
 
-        // 3. Checklist interactivo de Revisión Semanal
         const defaultChecklist = [
           { id: 'c1', text: 'Despejar la mente: recopilar notas sueltas, papeles o ideas al Inbox.' },
           { id: 'c2', text: 'Procesar Inbox a Cero: clarificar cada tarea nueva (Next Action, Delegada o Incubadora).' },
@@ -2407,6 +2427,7 @@ async function loadData() {
         t.person = document.getElementById('edit-person').value.trim() || null;
         t.recurrence = document.getElementById('edit-recurrence').value || 'none';
         t.statusDate = today;
+        t.tz = getDeviceTimeZone();
         t.description = document.getElementById('edit-desc').value.trim() || null;
         persistData();
       }
@@ -2728,6 +2749,13 @@ async function loadData() {
         switchTab('people');
       } else if (key === 'r' || key === '6') {
         switchTab('review');
+      }
+    });
+
+    // Sincronizar automáticamente al volver del segundo plano en el móvil/tablet
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') {
+        loadData();
       }
     });
 
