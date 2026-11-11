@@ -58,6 +58,20 @@
   ],
   "tasks": [
     {
+      "id": "t_1794439334783_done",
+      "name": "cug",
+      "status": "Completed",
+      "dueDate": "2026-11-05",
+      "startTime": null,
+      "endTime": null,
+      "projectId": null,
+      "situation": null,
+      "person": null,
+      "recurrence": "none",
+      "statusDate": "2026-11-11",
+      "description": null
+    },
+    {
       "id": "t_1794277856580",
       "name": "Defensa Juanpo",
       "status": "Next Action",
@@ -243,14 +257,14 @@
       "id": "t_1793580217277",
       "name": "cug",
       "status": "Next Action",
-      "dueDate": "2026-11-05",
+      "dueDate": "2026-12-05",
       "startTime": null,
       "endTime": null,
       "projectId": null,
       "situation": null,
       "person": null,
       "recurrence": "monthly",
-      "statusDate": "2026-11-02",
+      "statusDate": "2026-11-11",
       "description": null
     },
     {
