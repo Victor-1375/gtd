@@ -67,6 +67,20 @@
   ],
   "tasks": [
     {
+      "id": "t_1794440271300",
+      "name": "Leer reflexiones de Varden sobre la migración",
+      "status": "Next Action",
+      "dueDate": null,
+      "startTime": null,
+      "endTime": null,
+      "projectId": "p_1794439777276",
+      "situation": "Formación",
+      "person": null,
+      "recurrence": "none",
+      "statusDate": "2026-11-11",
+      "description": "https://coramfratribus.com/life-illumined/migration/"
+    },
+    {
       "id": "t_1794440184190",
       "name": "Leer Venite ad me, sobre la transmisión de la fe",
       "status": "Next Action",
