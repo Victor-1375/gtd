@@ -396,7 +396,7 @@
     {
       "id": "t_1793154600747",
       "name": "Enviar presupuesto cdv",
-      "status": "Next Action",
+      "status": "Completed",
       "dueDate": "2026-11-11",
       "startTime": null,
       "endTime": null,
@@ -404,7 +404,8 @@
       "situation": "Compu",
       "person": "Gabriel García",
       "description": null,
-      "recurrence": "none"
+      "recurrence": "none",
+      "statusDate": "2026-11-11"
     },
     {
       "id": "t_1793154240819",
