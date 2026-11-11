@@ -67,6 +67,20 @@
   ],
   "tasks": [
     {
+      "id": "t_1794440108044",
+      "name": "Revisar las correcciones del p. Jorge Mario Posada",
+      "status": "Next Action",
+      "dueDate": null,
+      "startTime": null,
+      "endTime": null,
+      "projectId": "p_1793291858177",
+      "situation": null,
+      "person": null,
+      "recurrence": "none",
+      "statusDate": "2026-11-11",
+      "description": null
+    },
+    {
       "id": "t_1794439844295",
       "name": "Buscar cosas de Lorenzo Milani y Antonino Bello",
       "status": "Next Action",
