@@ -54,6 +54,15 @@
       "dueDate": null,
       "person": null,
       "notes": null
+    },
+    {
+      "id": "p_1794439777276",
+      "name": "Formación sacerdotal",
+      "area": "FORMACIÓN",
+      "status": "Active",
+      "dueDate": null,
+      "person": null,
+      "notes": null
     }
   ],
   "tasks": [
