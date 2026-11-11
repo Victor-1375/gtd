@@ -102,7 +102,7 @@
     {
       "id": "t_1794257270171",
       "name": "Conversación Miguel Duarte",
-      "status": "Next Action",
+      "status": "Completed",
       "dueDate": "2026-11-11",
       "startTime": "16:30",
       "endTime": "17:30",
@@ -110,7 +110,7 @@
       "situation": null,
       "person": null,
       "recurrence": "none",
-      "statusDate": "2026-11-09",
+      "statusDate": "2026-11-11",
       "description": null
     },
     {
@@ -158,7 +158,7 @@
     {
       "id": "t_1794051848354",
       "name": "Almuerzo Checho",
-      "status": "Next Action",
+      "status": "Completed",
       "dueDate": "2026-11-11",
       "startTime": "14:00",
       "endTime": "15:30",
@@ -166,7 +166,7 @@
       "situation": null,
       "person": "Checho Pardo",
       "recurrence": "none",
-      "statusDate": "2026-11-07",
+      "statusDate": "2026-11-11",
       "description": null
     },
     {
