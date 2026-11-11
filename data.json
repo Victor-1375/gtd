@@ -67,6 +67,20 @@
   ],
   "tasks": [
     {
+      "id": "t_1794440184190",
+      "name": "Leer Venite ad me, sobre la transmisión de la fe",
+      "status": "Next Action",
+      "dueDate": null,
+      "startTime": null,
+      "endTime": null,
+      "projectId": "p_1794439777276",
+      "situation": null,
+      "person": null,
+      "recurrence": "none",
+      "statusDate": "2026-11-11",
+      "description": "https://www.vatican.va/roman_curia/congregations/cfaith/documents/rc_ddf_doc_20261022_venite-ad-me_sp.html"
+    },
+    {
       "id": "t_1794440108044",
       "name": "Revisar las correcciones del p. Jorge Mario Posada",
       "status": "Next Action",
