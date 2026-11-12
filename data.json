@@ -223,7 +223,7 @@
     {
       "id": "t_1794256927528",
       "name": "Reunión Raíces Profundas",
-      "status": "Next Action",
+      "status": "Completed",
       "dueDate": "2026-11-12",
       "startTime": "10:00",
       "endTime": "11:15",
@@ -231,7 +231,7 @@
       "situation": null,
       "person": null,
       "recurrence": "none",
-      "statusDate": "2026-11-09",
+      "statusDate": "2026-11-12",
       "description": null
     },
     {
