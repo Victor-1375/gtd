@@ -7,7 +7,7 @@ X-WR-CALNAME:GTD Tareas
 X-WR-TIMEZONE:America/Bogota
 BEGIN:VEVENT
 UID:t_1794439650075@migtd
-DTSTAMP:20261112T222634Z
+DTSTAMP:20261112T222636Z
 SUMMARY:Grabar meditaciones rtm marzo 2027
 DESCRIPTION:Proyecto: coe | ¿Podrías grabar las tres meditaciones del retiro mensual de marzo? serían tus meditaciones de despedida. El tema general de ese mes es Cuaresma (I): Las prácticas cuaresmales en el sermón de la montaña (Mt 6\,1-8.16-18).\nLa idea sería tenerlas listas durante la semana anterior al primer fin de semana de marzo para que Juanes (un practicante de comunicación en la capellanía de Unisabana) tenga tiempo de pulir/editar los audios antes de compartirlos.
 DTSTART;VALUE=DATE:20270220
@@ -15,14 +15,14 @@ DTEND;VALUE=DATE:20270221
 END:VEVENT
 BEGIN:VEVENT
 UID:t_1794277856580@migtd
-DTSTAMP:20261112T222634Z
+DTSTAMP:20261112T222636Z
 SUMMARY:Defensa Juanpo
 DTSTART;VALUE=DATE:20261113
 DTEND;VALUE=DATE:20261114
 END:VEVENT
 BEGIN:VEVENT
 UID:t_1793986586113@migtd
-DTSTAMP:20261112T222634Z
+DTSTAMP:20261112T222636Z
 SUMMARY:Pedir cita cédula extranjería
 DESCRIPTION:https://apps.migracioncolombia.gov.co/citas
 DTSTART;TZID=America/Bogota:20261108T170000
@@ -30,7 +30,7 @@ DTEND;TZID=America/Bogota:20261108T180000
 END:VEVENT
 BEGIN:VEVENT
 UID:t_1793754006773@migtd
-DTSTAMP:20261112T222634Z
+DTSTAMP:20261112T222636Z
 SUMMARY:Columna Omnes
 DESCRIPTION:Repetición: monthly | Se entrega en:\n5 de diciembre\n10 de febrero\n10 de abril\n10 de junio\n10 de octubre
 DTSTART;VALUE=DATE:20261205
@@ -38,7 +38,7 @@ DTEND;VALUE=DATE:20261206
 END:VEVENT
 BEGIN:VEVENT
 UID:t_1793580217277@migtd
-DTSTAMP:20261112T222634Z
+DTSTAMP:20261112T222636Z
 SUMMARY:cug
 DESCRIPTION:Repetición: monthly
 DTSTART;VALUE=DATE:20261205
@@ -46,7 +46,7 @@ DTEND;VALUE=DATE:20261206
 END:VEVENT
 BEGIN:VEVENT
 UID:t_1793148596574@migtd
-DTSTAMP:20261112T222634Z
+DTSTAMP:20261112T222636Z
 SUMMARY:Escribir abstract
 DESCRIPTION:Proyecto: Congreso en Messina | Persona: Don Francesco Russo
 DTSTART;VALUE=DATE:20261128
@@ -54,7 +54,7 @@ DTEND;VALUE=DATE:20261129
 END:VEVENT
 BEGIN:VEVENT
 UID:proj_p_1793229652349@migtd
-DTSTAMP:20261112T222634Z
+DTSTAMP:20261112T222636Z
 SUMMARY:📁 [PROYECTO] Iragua
 DESCRIPTION:Área: Pastoral | Persona: David Samudio
 DTSTART;VALUE=DATE:20270411
