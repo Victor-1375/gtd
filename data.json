@@ -67,6 +67,21 @@
   ],
   "tasks": [
     {
+      "id": "t_1794867509448",
+      "name": "Preparar meditación sr (Yarí)",
+      "status": "Inbox",
+      "dueDate": "2026-11-19",
+      "startTime": null,
+      "endTime": null,
+      "projectId": "p_1793154290032",
+      "situation": null,
+      "person": null,
+      "recurrence": "none",
+      "statusDate": "2026-11-16",
+      "tz": "America/Bogota",
+      "description": null
+    },
+    {
       "id": "t_1794867486983",
       "name": "Preoarar meditación sm (Portones y Delta)",
       "status": "Next Action",
