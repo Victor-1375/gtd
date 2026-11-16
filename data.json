@@ -68,7 +68,7 @@
   "tasks": [
     {
       "id": "t_1794867538407",
-      "name": "Preparar rtrim nog",
+      "name": "Preparar rtrim nog (tb Portones y Cedro)",
       "status": "Next Action",
       "dueDate": "2026-11-20",
       "startTime": null,
@@ -79,7 +79,7 @@
       "recurrence": "none",
       "statusDate": "2026-11-16",
       "tz": "America/Bogota",
-      "description": null
+      "description": "https://www.collationes.org/recurso/19/231/retiros-mensuales-san-gabriel-enero-2021#octubre-diciembre"
     },
     {
       "id": "t_1794867509448",
