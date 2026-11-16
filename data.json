@@ -168,7 +168,7 @@
     {
       "id": "t_1794277856580",
       "name": "Defensa Juanpo",
-      "status": "Next Action",
+      "status": "Completed",
       "dueDate": "2026-11-13",
       "startTime": null,
       "endTime": null,
@@ -176,7 +176,7 @@
       "situation": null,
       "person": null,
       "recurrence": "none",
-      "statusDate": "2026-11-10",
+      "statusDate": "2026-11-16",
       "description": null
     },
     {
