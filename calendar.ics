@@ -7,7 +7,7 @@ X-WR-CALNAME:GTD Tareas
 X-WR-TIMEZONE:America/Bogota
 BEGIN:VEVENT
 UID:t_1794867538407@migtd
-DTSTAMP:20261116T224544Z
+DTSTAMP:20261117T022707Z
 SUMMARY:Preparar rtrim nog (tb Portones y Cedro)
 DESCRIPTION:https://www.collationes.org/recurso/19/231/retiros-mensuales-san-gabriel-enero-2021#octubre-diciembre
 DTSTART;VALUE=DATE:20261120
@@ -15,7 +15,7 @@ DTEND;VALUE=DATE:20261121
 END:VEVENT
 BEGIN:VEVENT
 UID:t_1794867509448@migtd
-DTSTAMP:20261116T224544Z
+DTSTAMP:20261117T022707Z
 SUMMARY:Preparar meditación sr (Yarí)
 DESCRIPTION:Proyecto: coe
 DTSTART;VALUE=DATE:20261119
@@ -23,15 +23,15 @@ DTEND;VALUE=DATE:20261120
 END:VEVENT
 BEGIN:VEVENT
 UID:t_1794867486983@migtd
-DTSTAMP:20261116T224544Z
-SUMMARY:Preoarar meditación sm (Portones y Delta)
+DTSTAMP:20261117T022707Z
+SUMMARY:Preparar meditación sm (Portones y Delta)
 DESCRIPTION:Proyecto: coe
 DTSTART;VALUE=DATE:20261118
 DTEND;VALUE=DATE:20261119
 END:VEVENT
 BEGIN:VEVENT
 UID:t_1794439650075@migtd
-DTSTAMP:20261116T224544Z
+DTSTAMP:20261117T022707Z
 SUMMARY:Grabar meditaciones rtm marzo 2027
 DESCRIPTION:Proyecto: coe | ¿Podrías grabar las tres meditaciones del retiro mensual de marzo? serían tus meditaciones de despedida. El tema general de ese mes es Cuaresma (I): Las prácticas cuaresmales en el sermón de la montaña (Mt 6\,1-8.16-18).\nLa idea sería tenerlas listas durante la semana anterior al primer fin de semana de marzo para que Juanes (un practicante de comunicación en la capellanía de Unisabana) tenga tiempo de pulir/editar los audios antes de compartirlos.
 DTSTART;VALUE=DATE:20270220
@@ -39,7 +39,7 @@ DTEND;VALUE=DATE:20270221
 END:VEVENT
 BEGIN:VEVENT
 UID:t_1793986586113@migtd
-DTSTAMP:20261116T224544Z
+DTSTAMP:20261117T022707Z
 SUMMARY:Pedir cita cédula extranjería
 DESCRIPTION:https://apps.migracioncolombia.gov.co/citas
 DTSTART;TZID=America/Bogota:20261108T170000
@@ -47,7 +47,7 @@ DTEND;TZID=America/Bogota:20261108T180000
 END:VEVENT
 BEGIN:VEVENT
 UID:t_1793754006773@migtd
-DTSTAMP:20261116T224544Z
+DTSTAMP:20261117T022707Z
 SUMMARY:Columna Omnes
 DESCRIPTION:Repetición: monthly | Se entrega en:\n5 de diciembre\n10 de febrero\n10 de abril\n10 de junio\n10 de octubre
 DTSTART;VALUE=DATE:20261205
@@ -55,7 +55,7 @@ DTEND;VALUE=DATE:20261206
 END:VEVENT
 BEGIN:VEVENT
 UID:t_1793580217277@migtd
-DTSTAMP:20261116T224544Z
+DTSTAMP:20261117T022707Z
 SUMMARY:cug
 DESCRIPTION:Repetición: monthly
 DTSTART;VALUE=DATE:20261205
@@ -63,7 +63,7 @@ DTEND;VALUE=DATE:20261206
 END:VEVENT
 BEGIN:VEVENT
 UID:t_1793148596574@migtd
-DTSTAMP:20261116T224544Z
+DTSTAMP:20261117T022707Z
 SUMMARY:Escribir abstract
 DESCRIPTION:Proyecto: Congreso en Messina | Persona: Don Francesco Russo
 DTSTART;VALUE=DATE:20261128
@@ -71,7 +71,7 @@ DTEND;VALUE=DATE:20261129
 END:VEVENT
 BEGIN:VEVENT
 UID:proj_p_1793229652349@migtd
-DTSTAMP:20261116T224544Z
+DTSTAMP:20261117T022707Z
 SUMMARY:📁 [PROYECTO] Iragua
 DESCRIPTION:Área: Pastoral | Persona: David Samudio
 DTSTART;VALUE=DATE:20270411
