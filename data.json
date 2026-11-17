@@ -98,7 +98,7 @@
     },
     {
       "id": "t_1794867486983",
-      "name": "Preoarar meditación sm (Portones y Delta)",
+      "name": "Preparar meditación sm (Portones y Delta)",
       "status": "Next Action",
       "dueDate": "2026-11-18",
       "startTime": null,
@@ -107,7 +107,7 @@
       "situation": null,
       "person": null,
       "recurrence": "none",
-      "statusDate": "2026-11-16",
+      "statusDate": "2026-11-17",
       "tz": "America/Bogota",
       "description": null
     },
