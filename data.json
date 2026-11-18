@@ -84,7 +84,7 @@
     {
       "id": "t_1794939857422",
       "name": "Hablar Javier Fragua",
-      "status": "Next Action",
+      "status": "Completed",
       "dueDate": "2026-11-18",
       "startTime": "12:00",
       "endTime": "13:00",
@@ -92,7 +92,7 @@
       "situation": "Llamadas",
       "person": null,
       "recurrence": "none",
-      "statusDate": "2026-11-17",
+      "statusDate": "2026-11-18",
       "description": null
     },
     {
