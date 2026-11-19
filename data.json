@@ -128,7 +128,7 @@
     {
       "id": "t_1794867509448",
       "name": "Preparar meditación sr (Yarí)",
-      "status": "Inbox",
+      "status": "Next Action",
       "dueDate": "2026-11-19",
       "startTime": null,
       "endTime": null,
@@ -136,7 +136,7 @@
       "situation": null,
       "person": null,
       "recurrence": "none",
-      "statusDate": "2026-11-16",
+      "statusDate": "2026-11-19",
       "tz": "America/Bogota",
       "description": null
     },
