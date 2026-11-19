@@ -84,7 +84,7 @@
     {
       "id": "t_1794968338917",
       "name": "Cédula extranjería",
-      "status": "Next Action",
+      "status": "Completed",
       "dueDate": "2026-11-18",
       "startTime": null,
       "endTime": null,
@@ -92,7 +92,7 @@
       "situation": null,
       "person": null,
       "recurrence": "none",
-      "statusDate": "2026-11-18",
+      "statusDate": "2026-11-19",
       "tz": "America/Bogota",
       "description": null
     },
