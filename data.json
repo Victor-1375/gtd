@@ -67,6 +67,21 @@
   ],
   "tasks": [
     {
+      "id": "t_1795056008864",
+      "name": "Escribir a Joaquín Sánchez",
+      "status": "Inbox",
+      "dueDate": null,
+      "startTime": null,
+      "endTime": null,
+      "projectId": null,
+      "situation": null,
+      "person": null,
+      "recurrence": "none",
+      "statusDate": "2026-11-19",
+      "tz": "America/Bogota",
+      "description": null
+    },
+    {
       "id": "t_1794968338917",
       "name": "Cédula extranjería",
       "status": "Next Action",
