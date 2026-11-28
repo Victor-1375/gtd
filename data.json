@@ -67,21 +67,6 @@
   ],
   "tasks": [
     {
-      "id": "t_1795696320033",
-      "name": "Enviar meditación a Alberto Gil",
-      "status": "Inbox",
-      "dueDate": null,
-      "startTime": null,
-      "endTime": null,
-      "projectId": null,
-      "situation": null,
-      "person": null,
-      "recurrence": "none",
-      "statusDate": "2026-11-26",
-      "tz": "America/Bogota",
-      "description": null
-    },
-    {
       "id": "t_1795549479760",
       "name": "Llamad a Rodo",
       "status": "Inbox",
