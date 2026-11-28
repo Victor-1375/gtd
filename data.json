@@ -67,6 +67,21 @@
   ],
   "tasks": [
     {
+      "id": "t_1795696320033",
+      "name": "Enviar meditación a Alberto Gil",
+      "status": "Inbox",
+      "dueDate": null,
+      "startTime": null,
+      "endTime": null,
+      "projectId": null,
+      "situation": null,
+      "person": null,
+      "recurrence": "none",
+      "statusDate": "2026-11-26",
+      "tz": "America/Bogota",
+      "description": null
+    },
+    {
       "id": "t_1795549479760",
       "name": "Llamad a Rodo",
       "status": "Inbox",
@@ -651,7 +666,7 @@
     {
       "id": "t_1793148596574",
       "name": "Escribir abstract",
-      "status": "Next Action",
+      "status": "Completed",
       "dueDate": "2026-11-28",
       "startTime": null,
       "endTime": null,
@@ -660,7 +675,7 @@
       "person": "Don Francesco Russo",
       "description": null,
       "recurrence": "none",
-      "statusDate": "2026-11-10"
+      "statusDate": "2026-11-28"
     },
     {
       "id": "t_1793148288340",
